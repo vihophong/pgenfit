@@ -1,0 +1,96 @@
+void unbinfit::RunJJfit(char *outputFileName)
+{
+    std::ifstream ifs("jjparms.txt");
+    double par0[34];
+    string stemp;
+    for(int i=0;i<34;i++){
+        ifs>>par0[i]>>stemp;
+    }
+
+    RooRealVar N0("N0","N0",par0[0],0.0001,par0[0]*100); //initial activities
+        /* decay constants */
+    RooRealVar h1("h1","h1",par0[1],0.00001,10);
+    RooRealVar p1n1("p1n1","p1n1",par0[2],0,1);
+    RooRealVar p2n1("p2n1","p2n1",par0[3],0,1);
+    RooRealVar h2("h2","h2",par0[4]);
+    RooRealVar p1n2("p1n2","p1n2",par0[5]);
+    RooRealVar p2n2("p2n2","p2n2",par0[6]);
+    RooRealVar h3("h3","h3",par0[7]);
+    RooRealVar p1n3("p1n3","p1n3",par0[8]);
+    RooRealVar p2n3("p2n3","p2n3",par0[9]);
+    RooRealVar h4("h4","h4",par0[10]);
+    RooRealVar p1n4("p1n4","p1n4",par0[11]);
+    RooRealVar p2n4("p2n4","p2n4",par0[12]);
+    RooRealVar h6("h6","h6",par0[13]);
+    RooRealVar p1n6("p1n6","p1n6",par0[14]);
+    RooRealVar p2n6("p2n6","p2n6",par0[15]);
+    RooRealVar h7("h7","h7",par0[16]);
+    RooRealVar p1n7("p1n7","p1n7",par0[17]);
+    RooRealVar p2n7("p2n7","p2n7",par0[18]);
+    RooRealVar h8("h8","h8",par0[19]);
+    RooRealVar p1n8("p1n8","p1n8",par0[20]);
+    RooRealVar p2n8("p2n8","p2n8",par0[21]);
+    RooRealVar h10("h10","h10",par0[22]);
+    RooRealVar p1n10("p1n10","p1n10",par0[23]);
+    RooRealVar h11("h11","h11",par0[24]);
+    RooRealVar p1n11("p1n11","p1n11",par0[25]);
+    RooRealVar h12("h12","h12",par0[26]);
+    RooRealVar p1n12("p1n12","p1n12",par0[27]);
+    RooRealVar h14("h14","h14",par0[28]);
+    RooRealVar h15("h15","h15",par0[29]);
+    RooRealVar r1("r1","r1",0.01);
+    RooRealVar r2("r2","r2",0.005);
+
+    RooRealVar fb0n("tb0n","tb0n",par0[30],0,100000);
+
+    RooRealVar fb1n("tb1n","tb1n",par0[31],0,10000);
+
+    RooRealVar fb2n("tb2n","tb2n",par0[32],0,10000);
+
+    RooRealVar eff("eff","eff",0.62);
+
+    RooRealVar time_decay("time_decay","time_decay",0,10);
+    RooCategory time_mult("time_mult","time_mult");
+        time_mult.defineType("0neu",0);
+        time_mult.defineType("1neu",1);
+        time_mult.defineType("2neu",2);
+
+    fdecay_2d_ratio fndecay("fndecay","fndecay",time_decay,time_mult,N0,h1,h2,h3,h4,h6,h7,h8,h10,h11,h12,h14,h15,p1n1,p1n2,p1n3,p1n4,p1n6,p1n7,p1n8,p1n10,p1n11,p1n12,p2n1,p2n2,p2n3,p2n4,p2n6,p2n7,p2n8,fb0n,fb1n,fb2n,eff,r1,r2);
+    fndecay.Print();
+
+    //!******************************************
+    //! Prepare data set for fitting forward correlated data
+    //! *****************************************
+    RooDataSet* data=new RooDataSet("data","data",RooArgSet(time_decay,time_mult),Import(*tree)) ;
+    data->Print() ;
+
+
+    TStopwatch t;
+    t.Start();
+    RooDataSet* datamc=fndecay.generate(RooArgSet(time_decay,time_mult),100000);
+    t.Stop();
+    Double_t gentime=t.RealTime();
+
+
+    t.Clear();
+
+    t.Start();
+    RooFitResult* r3=fndecay.fitTo(*datamc,NumCPU(16),Save());
+    t.Stop();
+
+    TFile* fout=new TFile(outputFileName,"recreate");
+    TCanvas *c = new TCanvas("fit","fit",900,700);
+    /* plot figures */
+    RooPlot* xframet = time_decay.frame(Name("total_decay"),Title("total decay"));
+    datamc->plotOn(xframet,Binning(1000));
+    fndecay.plotOn(xframet);
+    xframet->Draw();
+    c->Write();
+    fout->Close();
+
+    cout<<"JJ unbinned fit: Time of MC generation: "<<gentime<<" seconds"<<endl;
+
+    cout<<"JJ unbinned fit: Time of fitting: "<<t.RealTime()<<" seconds"<<endl;
+
+}
+
