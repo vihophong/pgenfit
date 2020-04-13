@@ -44,6 +44,35 @@ public:
   Double_t fcndecay(Double_t *x, Double_t *par) const;
   Double_t fcndecay1n(Double_t *x, Double_t *par) const;
   Double_t fcndecay2n(Double_t *x, Double_t *par) const;
+
+  //! for plotting
+  Double_t fcndecay_parent(Double_t *x, Double_t *par) const;
+  Double_t fcndecay1n_parent(Double_t *x, Double_t *par) const;
+  Double_t fcndecay2n_parent(Double_t *x, Double_t *par) const;
+  Double_t fcndecay_daugter(Double_t *x, Double_t *par) const{
+      return fcndecay(x, par)-fcndecay_parent(x, par)+par[fpath->nri5+4]+par[fpath->nri5+5]*x[0];
+  }
+  Double_t fcndecay1n_daugter(Double_t *x, Double_t *par) const{
+      return fcndecay1n(x, par)-fcndecay1n_parent(x, par)+par[fpath->nri5+4]+par[fpath->nri5+5]*x[0];
+  }
+  Double_t fcndecay2n_daugter(Double_t *x, Double_t *par) const{
+      return fcndecay2n(x, par)-fcndecay2n_parent(x, par)+par[fpath->nri5+4]+par[fpath->nri5+5]*x[0];
+  }
+
+
+  Double_t fcndecay1n_c1(Double_t *x, Double_t *par) const;
+  Double_t fcndecay1n_c2(Double_t *x, Double_t *par) const;
+  Double_t fcndecay1n_c3(Double_t *x, Double_t *par) const;
+  Double_t fcndecay1n_c23(Double_t *x, Double_t *par) const;
+
+  Double_t fcndecay2n_c1(Double_t *x, Double_t *par) const;
+  Double_t fcndecay2n_c2(Double_t *x, Double_t *par) const;
+  Double_t fcndecay2n_c3(Double_t *x, Double_t *par) const;
+  Double_t fcndecay2n_c4(Double_t *x, Double_t *par) const;
+
+  Double_t fcndecay2n_c134(Double_t *x, Double_t *par) const;
+
+
   void initPath() ;
 
 protected:

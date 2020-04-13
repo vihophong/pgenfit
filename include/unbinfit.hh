@@ -35,7 +35,14 @@
 #include "RooGaussian.h"
 #include "RooConstVar.h"
 #include "RooFitResult.h"
+
+#include "RooCurve.h"
+#include "RooHist.h"
+
+#include "TStyle.h"
 #include "TMath.h"
+#include "TGraph.h"
+#include "TGraphErrors.h"
 
 #include "TStopwatch.h"
 #include "TRandom3.h"
@@ -55,18 +62,21 @@
 
 
 
+
 class unbinfit
 {
   public:
     unbinfit();
     virtual ~unbinfit();
     void Init(char* inputParms, char* inputData);
+
     void SetParameters();
 
     void setOutputFile(char* outputData){sprintf(foutputData,"%s",outputData);}
     void setStartTime(double deadtime){p_deadtime=deadtime;}
     void Run();
     void RunBinFit();
+
     void generateRoofitEvaluate();
 
     void fitBackground();
@@ -80,6 +90,7 @@ class unbinfit
     void doFit();
 
     void plotResults();
+    void plotResultsMore(Int_t opt=0);
     void writeResults();
     void writeOutputTree(){foutputtree->Write();}
     void closeOutputFile(){fout->Close();}
@@ -101,8 +112,17 @@ class unbinfit
         nbinsHSB2=nbins;
     }
 
+    void setdataHistzero(RooHist* datahist){
+        for (Int_t i=0;i<datahist->GetN();i++){if (datahist->GetY()[i]==0) {
+                datahist->SetPointEYhigh(i,0);
+                datahist->SetPointEYlow(i,0);
+            }
+        }
+    }
+
  private:
     void setModel();
+    void writeFitComponents();
     char* finputParms;
     char* finputData;
     char foutputData[500];
@@ -130,6 +150,7 @@ class unbinfit
     RooRealVar* slope2pos;
     RooRealVar* slope3pos;
 
+    fitFbkg* bkgmodelneg;
     fitFbkg* bkgmodelpos;
 
     //! fit paramters
@@ -200,16 +221,14 @@ class unbinfit
     Double_t fMCGenTime;
     Double_t fFitTime;
 
-
     Int_t nbinsHB;
     Int_t nbinsHSB;
     Int_t nbinsHSB2;
-    Double_t p_timerange_plus;
 
     TH1F* hB;
-
     TH1F* hSB;
     TH1F* hSB2;
+
     TF1* fB;
     TF1* fSB;
     TF1* fSB2;
@@ -219,6 +238,43 @@ class unbinfit
     TF1* fB_bkgpos;
     TF1* fSB_bkgpos;
     TF1* fSB2_bkgpos;
+
+
+    fitF* totdecaymodelforplot;
+    TF1* fB_parent;
+    TF1* fB_daugter;
+    TF1* fSB_parent;
+    TF1* fSB_daugter;
+    TF1* fSB2_parent;
+    TF1* fSB2_daugter;
+
+    TF1* fSB_c1;
+    TF1* fSB_c2;
+    TF1* fSB_c3;
+    TF1* fSB_c23;
+    TF1* fSB2_c1;
+    TF1* fSB2_c2;
+    TF1* fSB2_c3;
+    TF1* fSB2_c4;
+    TF1* fSB2_c134;
+
+    RooCurve* model0nCurve;
+    RooHist* model0nHist;
+    RooCurve* model1nCurve;
+    RooHist* model1nHist;
+    RooCurve* model2nCurve;
+    RooHist* model2nHist;
+
+    RooCurve* modelbkg0nCurve;
+    RooHist* modelbkg0nHist;
+    RooCurve* modelbkg1nCurve;
+    RooHist* modelbkg1nHist;
+    RooCurve* modelbkg2nCurve;
+    RooHist* modelbkg2nHist;
+
+    Double_t plotrangelow;
+    Double_t plotrangehi;
+
 
     Double_t nsig_hB_firstbin;
     Double_t binfitparms[kmaxparms];

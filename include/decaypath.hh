@@ -41,16 +41,13 @@ class decaypath
 
     void writePath();
 
-    MemberDef* getMember(int rino){flistofdecaymember_it=std::next(flistofdecaymember.begin(), rino);return (MemberDef*) *flistofdecaymember_it;};
+    MemberDef* getMember(int rino){flistofdecaymember_it=std::next(flistofdecaymember.begin(), rino);return (MemberDef*) *flistofdecaymember_it;}
     Int_t getNMember(){return (Int_t)flistofdecaymember.size();}
  private:
     char* finputParms;
     path* fdecaypath;
     std::list<MemberDef*> flistofdecaymember;
     std::list<MemberDef*>::iterator flistofdecaymember_it;
-
-
-
 };
 
 #endif

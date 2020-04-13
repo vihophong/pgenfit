@@ -10,7 +10,7 @@
 // ********************************************************************
 //
 /// \file decaypath.cc
-/// \brief Implementation of the fitF class
+/// \brief Implementation of the decaypath class
 
 #include "decaypath.hh"
 #include <iostream>
@@ -133,6 +133,9 @@ void decaypath::ProcessMember(MemberDef *obj)
     obj->decay_p2nerr=obj->decay_p2nerr/100;
     obj->decay_p2nlow=obj->decay_p2nlow/100;
     obj->decay_p2nup=obj->decay_p2nup/100;
+
+    obj->decay_p0n=1-obj->decay_p1n-obj->decay_p2n;
+    obj->decay_p0nerr=sqrt(obj->decay_p1nerr*obj->decay_p1nerr+obj->decay_p2nerr*obj->decay_p2nerr);
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -185,6 +188,8 @@ void decaypath::CopyMember(MemberDef *source, MemberDef *destination)
     destination-> is_decay_p1n_fix = source->  is_decay_p1n_fix;
     destination-> is_decay_p2n_fix = source->  is_decay_p2n_fix;
     destination-> is_neueff_fix = source->  is_neueff_fix;
+
+    destination-> gspatner = source->  gspatner;
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -274,6 +279,8 @@ void decaypath::makePath()
               obj->neueff >> obj->neuefferr >> obj->neuefflow >> obj->neueffup)) break;
         obj->n=a-obj->z;
 
+        obj->gspatner = -1;
+
         //! isomeric state
         Bool_t flagisomer = false;
         std::string tempstring(obj->name.Data());
@@ -303,6 +310,7 @@ void decaypath::makePath()
             obj->population_ratioup = 1 - objisomer->population_ratiolow;
             obj->population_ratiolow = 1 - objisomer->population_ratioup;
 
+            obj->gspatner = obj->id;
             flagisomer = true;
         }
 
@@ -388,7 +396,7 @@ void decaypath::makePath()
 
             }
             fdecaypath->ispathhasflow[fdecaypath->npaths]=isflow;
-            cout<<"Flow"<<fdecaypath->npaths<<"\t"<<isflow<<endl;
+            //cout<<"Flow"<<fdecaypath->npaths<<"\t"<<isflow<<endl;
 
             for (Size_t j=1;j<(*flistofdecaymember_it)->path[i].size();j++){
                 fdecaypath->nneu[fdecaypath->npaths][(Int_t)j-1]=(*flistofdecaymember_it)->nneupath[i][j];

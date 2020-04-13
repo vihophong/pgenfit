@@ -36,6 +36,7 @@
 #define kmaxndecay 200
 #define kmaxpaths 200
 #define kmaxparms 150
+#define kmaxnri 100
 
 //! make path
 typedef struct {
@@ -92,10 +93,16 @@ typedef struct {
     Int_t is_population_ratio_fix;
     Int_t is_neueff_fix;
 
+    Int_t gspatner; //ground statte patner, set negative if gs itself
+
     // paths to this ri
     std::vector< std::vector<Int_t> > path;
     std::vector< std::vector<Int_t> > nneupath;
-    std::vector< std::vector<Double_t> > branching;
+
+    // stuffs for simulation
+    Int_t sim_neumult;
+    Double_t sim_T;
+    Bool_t sim_ispopulated;
 } MemberDef;
 
 //! reduced paths

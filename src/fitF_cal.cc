@@ -65,6 +65,353 @@ Double_t fitF::fcndecay2n(Double_t *x, Double_t *par) const
     return calculateDecay2n(fparent,fdaugters,p1n,p2n,ne,randcoinf1n,randcoinfgt0n,randcoinf2n)+par[fpath->nri5+4]+par[fpath->nri5+5]*t;
 }
 
+
+
+Double_t fitF::fcndecay_parent(Double_t *x, Double_t *par) const
+{
+    Double_t t=x[0];
+    Double_t* l=&par[0];
+    Double_t e[fpath->nri];
+    for (Int_t i=0;i<fpath->nri;i++) e[i]=TMath::Exp(-l[i]*t);
+
+    Double_t* p1n=&par[fpath->nri];
+    Double_t* p2n=&par[fpath->nri2];
+    Double_t* py=&par[fpath->nri3];
+    Double_t* ne=&par[fpath->nri4];
+    Double_t N0=par[fpath->nri5]/l[0];
+    Double_t fparent=0;
+    Double_t fdecayall=0;
+    Double_t fdaugters[fpath->npaths];
+    calculateDecay(fdecayall,fparent, fdaugters, l,e,p1n,p2n,py,N0);
+    return fparent+par[fpath->nri5+4]+par[fpath->nri5+5]*t;
+}
+
+Double_t fitF::fcndecay1n_parent(Double_t *x, Double_t *par) const
+{
+    Double_t t=x[0];
+    Double_t* l=&par[0];
+    Double_t e[fpath->nri];
+    for (Int_t i=0;i<fpath->nri;i++) e[i]=TMath::Exp(-l[i]*t);
+    Double_t* p1n=&par[fpath->nri];
+    Double_t* p2n=&par[fpath->nri2];
+    Double_t* py=&par[fpath->nri3];
+    Double_t* ne=&par[fpath->nri4];
+    Double_t N0=par[fpath->nri5]/l[0];
+    Double_t randcoinfgt0n=*p[fpath->nri5+2];
+    Double_t randcoinf1n=*p[fpath->nri5+1];
+    Double_t fparent=0;
+    Double_t fdecayall=0;
+    Double_t fdaugters[fpath->npaths];
+    calculateDecay(fdecayall,fparent, fdaugters, l,e,p1n,p2n,py,N0);
+    //! fdecay1n
+    return fparent*(randcoinf1n+ne[0]*p1n[0]*(1-randcoinf1n-randcoinfgt0n)+2*(ne[0]*(1-ne[0]))*p2n[0]*(1-randcoinf1n-randcoinfgt0n)-ne[0]*ne[0]*p2n[0]*randcoinf1n)+par[fpath->nri5+4]+par[fpath->nri5+5]*t;
+}
+Double_t fitF::fcndecay2n_parent(Double_t *x, Double_t *par) const
+{
+    Double_t t=x[0];
+    Double_t* l=&par[0];
+    Double_t e[fpath->nri];
+    for (Int_t i=0;i<fpath->nri;i++) e[i]=TMath::Exp(-l[i]*t);
+    Double_t* p1n=&par[fpath->nri];
+    Double_t* p2n=&par[fpath->nri2];
+    Double_t* py=&par[fpath->nri3];
+    Double_t* ne=&par[fpath->nri4];
+    Double_t N0=par[fpath->nri5]/l[0];
+    Double_t randcoinf2n=*p[fpath->nri5+3];
+    Double_t randcoinfgt0n=*p[fpath->nri5+2];
+    Double_t randcoinf1n=*p[fpath->nri5+1];
+    Double_t fparent=0;
+    Double_t fdecayall=0;
+    Double_t fdaugters[fpath->npaths];
+    calculateDecay(fdecayall,fparent, fdaugters, l,e,p1n,p2n,py,N0);
+    //! fdecay2n
+    return fparent*(ne[0]*ne[0]*p2n[0]*(1-randcoinf2n-randcoinfgt0n)+randcoinf2n+ne[0]*p1n[0]*(randcoinf1n*(1-randcoinfgt0n)-randcoinf2n)+2*(ne[0]*(1-ne[0]))*p2n[0]*(randcoinf1n*(1-randcoinfgt0n)-randcoinf2n))+par[fpath->nri5+4]+par[fpath->nri5+5]*t;
+}
+
+Double_t fitF::fcndecay1n_c1(Double_t *x, Double_t *par) const
+{
+    Double_t t=x[0];
+    Double_t* l=&par[0];
+    Double_t e[fpath->nri];
+    for (Int_t i=0;i<fpath->nri;i++) e[i]=TMath::Exp(-l[i]*t);
+    Double_t* p1n=&par[fpath->nri];
+    Double_t* p2n=&par[fpath->nri2];
+    Double_t* py=&par[fpath->nri3];
+    Double_t* ne=&par[fpath->nri4];
+    Double_t N0=par[fpath->nri5]/l[0];
+    //Double_t randcoinfgt0n=*p[fpath->nri5+2];
+    Double_t randcoinf1n=*p[fpath->nri5+1];
+    Double_t fparent=0;
+    Double_t fdecayall=0;
+    Double_t fdaugters[fpath->npaths];
+    calculateDecay(fdecayall,fparent, fdaugters, l,e,p1n,p2n,py,N0);
+    //! fdecay1n
+    Double_t fdecay1n=fparent*(randcoinf1n-ne[0]*p1n[0]*randcoinf1n-2*(ne[0]*(1-ne[0]))*p2n[0]*randcoinf1n-ne[0]*ne[0]*p2n[0]*randcoinf1n);
+    for (Int_t i=0;i<fpath->npaths;i++){
+#ifdef PATHFLOW
+        if (fpath->ispathhasflow[i]){
+#endif
+            fdecay1n+=fdaugters[i]*(randcoinf1n-ne[fpath->decaymap[i][fpath->ndecay[i]-1]]*p1n[fpath->decaymap[i][fpath->ndecay[i]-1]]*randcoinf1n-2*(ne[fpath->decaymap[i][fpath->ndecay[i]-1]]*(1-ne[fpath->decaymap[i][fpath->ndecay[i]-1]]))*p2n[fpath->decaymap[i][fpath->ndecay[i]-1]]*randcoinf1n-ne[fpath->decaymap[i][fpath->ndecay[i]-1]]*ne[fpath->decaymap[i][fpath->ndecay[i]-1]]*p2n[fpath->decaymap[i][fpath->ndecay[i]-1]]*randcoinf1n);
+#ifdef PATHFLOW
+        }
+#endif
+    }
+    return fdecay1n+par[fpath->nri5+4]+par[fpath->nri5+5]*t;
+
+}
+Double_t fitF::fcndecay1n_c2(Double_t *x, Double_t *par) const
+{
+    Double_t t=x[0];
+    Double_t* l=&par[0];
+    Double_t e[fpath->nri];
+    for (Int_t i=0;i<fpath->nri;i++) e[i]=TMath::Exp(-l[i]*t);
+    Double_t* p1n=&par[fpath->nri];
+    Double_t* p2n=&par[fpath->nri2];
+    Double_t* py=&par[fpath->nri3];
+    Double_t* ne=&par[fpath->nri4];
+    Double_t N0=par[fpath->nri5]/l[0];
+    Double_t randcoinfgt0n=*p[fpath->nri5+2];
+    //Double_t randcoinf1n=*p[fpath->nri5+1];
+    Double_t fparent=0;
+    Double_t fdecayall=0;
+    Double_t fdaugters[fpath->npaths];
+    calculateDecay(fdecayall,fparent, fdaugters, l,e,p1n,p2n,py,N0);
+    //! fdecay1n
+    Double_t fdecay1n=fparent*ne[0]*p1n[0]*(1-randcoinfgt0n);
+    for (Int_t i=0;i<fpath->npaths;i++){
+#ifdef PATHFLOW
+        if (fpath->ispathhasflow[i]){
+#endif
+            fdecay1n+=fdaugters[i]*ne[fpath->decaymap[i][fpath->ndecay[i]-1]]*p1n[fpath->decaymap[i][fpath->ndecay[i]-1]]*(1-randcoinfgt0n);
+#ifdef PATHFLOW
+        }
+#endif
+    }
+    return fdecay1n+par[fpath->nri5+4]+par[fpath->nri5+5]*t;
+
+}
+Double_t fitF::fcndecay1n_c3(Double_t *x, Double_t *par) const
+{
+    Double_t t=x[0];
+    Double_t* l=&par[0];
+    Double_t e[fpath->nri];
+    for (Int_t i=0;i<fpath->nri;i++) e[i]=TMath::Exp(-l[i]*t);
+    Double_t* p1n=&par[fpath->nri];
+    Double_t* p2n=&par[fpath->nri2];
+    Double_t* py=&par[fpath->nri3];
+    Double_t* ne=&par[fpath->nri4];
+    Double_t N0=par[fpath->nri5]/l[0];
+    Double_t randcoinfgt0n=*p[fpath->nri5+2];
+    //Double_t randcoinf1n=*p[fpath->nri5+1];
+    Double_t fparent=0;
+    Double_t fdecayall=0;
+    Double_t fdaugters[fpath->npaths];
+    calculateDecay(fdecayall,fparent, fdaugters, l,e,p1n,p2n,py,N0);
+    //! fdecay1n
+    Double_t fdecay1n=fparent*2*(ne[0]*(1-ne[0]))*p2n[0]*(1-randcoinfgt0n);
+    for (Int_t i=0;i<fpath->npaths;i++){
+#ifdef PATHFLOW
+        if (fpath->ispathhasflow[i]){
+#endif
+            fdecay1n+=fdaugters[i]*2*(ne[fpath->decaymap[i][fpath->ndecay[i]-1]]*(1-ne[fpath->decaymap[i][fpath->ndecay[i]-1]]))*p2n[fpath->decaymap[i][fpath->ndecay[i]-1]]*(1-randcoinfgt0n);
+#ifdef PATHFLOW
+        }
+#endif
+    }
+    return fdecay1n+par[fpath->nri5+4]+par[fpath->nri5+5]*t;
+}
+Double_t fitF::fcndecay1n_c23(Double_t *x, Double_t *par) const
+{
+    Double_t t=x[0];
+    Double_t* l=&par[0];
+    Double_t e[fpath->nri];
+    for (Int_t i=0;i<fpath->nri;i++) e[i]=TMath::Exp(-l[i]*t);
+    Double_t* p1n=&par[fpath->nri];
+    Double_t* p2n=&par[fpath->nri2];
+    Double_t* py=&par[fpath->nri3];
+    Double_t* ne=&par[fpath->nri4];
+    Double_t N0=par[fpath->nri5]/l[0];
+    Double_t randcoinfgt0n=*p[fpath->nri5+2];
+    //Double_t randcoinf1n=*p[fpath->nri5+1];
+    Double_t fparent=0;
+    Double_t fdecayall=0;
+    Double_t fdaugters[fpath->npaths];
+    calculateDecay(fdecayall,fparent, fdaugters, l,e,p1n,p2n,py,N0);
+    //! fdecay1n
+    Double_t fdecay1n=fparent*(ne[0]*p1n[0]*(1-randcoinfgt0n)+2*(ne[0]*(1-ne[0]))*p2n[0]*(1-randcoinfgt0n));
+    for (Int_t i=0;i<fpath->npaths;i++){
+#ifdef PATHFLOW
+        if (fpath->ispathhasflow[i]){
+#endif
+            fdecay1n+=fdaugters[i]*(ne[fpath->decaymap[i][fpath->ndecay[i]-1]]*p1n[fpath->decaymap[i][fpath->ndecay[i]-1]]*(1-randcoinfgt0n)+2*(ne[fpath->decaymap[i][fpath->ndecay[i]-1]]*(1-ne[fpath->decaymap[i][fpath->ndecay[i]-1]]))*p2n[fpath->decaymap[i][fpath->ndecay[i]-1]]*(1-randcoinfgt0n));
+#ifdef PATHFLOW
+        }
+#endif
+    }
+    return fdecay1n+par[fpath->nri5+4]+par[fpath->nri5+5]*t;
+}
+
+Double_t fitF::fcndecay2n_c1(Double_t *x, Double_t *par) const
+{
+    Double_t t=x[0];
+    Double_t* l=&par[0];
+    Double_t e[fpath->nri];
+    for (Int_t i=0;i<fpath->nri;i++) e[i]=TMath::Exp(-l[i]*t);
+    Double_t* p1n=&par[fpath->nri];
+    Double_t* p2n=&par[fpath->nri2];
+    Double_t* py=&par[fpath->nri3];
+    Double_t* ne=&par[fpath->nri4];
+    Double_t N0=par[fpath->nri5]/l[0];
+    Double_t randcoinf2n=*p[fpath->nri5+3];
+    //Double_t randcoinfgt0n=*p[fpath->nri5+2];
+    //Double_t randcoinf1n=*p[fpath->nri5+1];
+    Double_t fparent=0;
+    Double_t fdecayall=0;
+    Double_t fdaugters[fpath->npaths];
+    calculateDecay(fdecayall,fparent, fdaugters, l,e,p1n,p2n,py,N0);
+    //! fdecay2n
+    Double_t fdecay2n=fparent*(-ne[0]*ne[0]*p2n[0]*randcoinf2n+randcoinf2n-ne[0]*p1n[0]*randcoinf2n-2*(ne[0]*(1-ne[0]))*p2n[0]*randcoinf2n);
+    for (Int_t i=0;i<fpath->npaths;i++){
+#ifdef PATHFLOW
+        if (fpath->ispathhasflow[i]){
+#endif
+            fdecay2n+=fdaugters[i]*(-ne[fpath->decaymap[i][fpath->ndecay[i]-1]]*ne[fpath->decaymap[i][fpath->ndecay[i]-1]]*p2n[fpath->decaymap[i][fpath->ndecay[i]-1]]*randcoinf2n+randcoinf2n-ne[fpath->decaymap[i][fpath->ndecay[i]-1]]*p1n[fpath->decaymap[i][fpath->ndecay[i]-1]]*randcoinf2n-2*(ne[fpath->decaymap[i][fpath->ndecay[i]-1]]*(1-ne[fpath->decaymap[i][fpath->ndecay[i]-1]]))*p2n[fpath->decaymap[i][fpath->ndecay[i]-1]]*randcoinf2n);
+#ifdef PATHFLOW
+        }
+#endif
+    }
+    return fdecay2n+par[fpath->nri5+4]+par[fpath->nri5+5]*t;
+}
+Double_t fitF::fcndecay2n_c2(Double_t *x, Double_t *par) const
+{
+    Double_t t=x[0];
+    Double_t* l=&par[0];
+    Double_t e[fpath->nri];
+    for (Int_t i=0;i<fpath->nri;i++) e[i]=TMath::Exp(-l[i]*t);
+    Double_t* p1n=&par[fpath->nri];
+    Double_t* p2n=&par[fpath->nri2];
+    Double_t* py=&par[fpath->nri3];
+    Double_t* ne=&par[fpath->nri4];
+    Double_t N0=par[fpath->nri5]/l[0];
+    //Double_t randcoinf2n=*p[fpath->nri5+3];
+    Double_t randcoinfgt0n=*p[fpath->nri5+2];
+    //Double_t randcoinf1n=*p[fpath->nri5+1];
+    Double_t fparent=0;
+    Double_t fdecayall=0;
+    Double_t fdaugters[fpath->npaths];
+    calculateDecay(fdecayall,fparent, fdaugters, l,e,p1n,p2n,py,N0);
+    //! fdecay2n
+    Double_t fdecay2n=fparent*ne[0]*ne[0]*p2n[0]*(1-randcoinfgt0n);
+    for (Int_t i=0;i<fpath->npaths;i++){
+#ifdef PATHFLOW
+        if (fpath->ispathhasflow[i]){
+#endif
+            fdecay2n+=fdaugters[i]*ne[fpath->decaymap[i][fpath->ndecay[i]-1]]*ne[fpath->decaymap[i][fpath->ndecay[i]-1]]*p2n[fpath->decaymap[i][fpath->ndecay[i]-1]]*(1-randcoinfgt0n);
+#ifdef PATHFLOW
+        }
+#endif
+    }
+    return fdecay2n+par[fpath->nri5+4]+par[fpath->nri5+5]*t;
+
+}
+
+Double_t fitF::fcndecay2n_c3(Double_t *x, Double_t *par) const
+{
+    Double_t t=x[0];
+    Double_t* l=&par[0];
+    Double_t e[fpath->nri];
+    for (Int_t i=0;i<fpath->nri;i++) e[i]=TMath::Exp(-l[i]*t);
+    Double_t* p1n=&par[fpath->nri];
+    Double_t* p2n=&par[fpath->nri2];
+    Double_t* py=&par[fpath->nri3];
+    Double_t* ne=&par[fpath->nri4];
+    Double_t N0=par[fpath->nri5]/l[0];
+    //Double_t randcoinf2n=*p[fpath->nri5+3];
+    Double_t randcoinfgt0n=*p[fpath->nri5+2];
+    Double_t randcoinf1n=*p[fpath->nri5+1];
+    Double_t fparent=0;
+    Double_t fdecayall=0;
+    Double_t fdaugters[fpath->npaths];
+    calculateDecay(fdecayall,fparent, fdaugters, l,e,p1n,p2n,py,N0);
+    //! fdecay2n
+    Double_t fdecay2n=fparent*ne[0]*p1n[0]*(randcoinf1n*(1-randcoinfgt0n));
+    for (Int_t i=0;i<fpath->npaths;i++){
+#ifdef PATHFLOW
+        if (fpath->ispathhasflow[i]){
+#endif
+            fdecay2n+=fdaugters[i]*ne[fpath->decaymap[i][fpath->ndecay[i]-1]]*p1n[fpath->decaymap[i][fpath->ndecay[i]-1]]*(randcoinf1n*(1-randcoinfgt0n));
+#ifdef PATHFLOW
+        }
+#endif
+    }
+    return fdecay2n+par[fpath->nri5+4]+par[fpath->nri5+5]*t;
+}
+Double_t fitF::fcndecay2n_c4(Double_t *x, Double_t *par) const
+{
+    Double_t t=x[0];
+    Double_t* l=&par[0];
+    Double_t e[fpath->nri];
+    for (Int_t i=0;i<fpath->nri;i++) e[i]=TMath::Exp(-l[i]*t);
+    Double_t* p1n=&par[fpath->nri];
+    Double_t* p2n=&par[fpath->nri2];
+    Double_t* py=&par[fpath->nri3];
+    Double_t* ne=&par[fpath->nri4];
+    Double_t N0=par[fpath->nri5]/l[0];
+    //Double_t randcoinf2n=*p[fpath->nri5+3];
+    Double_t randcoinfgt0n=*p[fpath->nri5+2];
+    Double_t randcoinf1n=*p[fpath->nri5+1];
+    Double_t fparent=0;
+    Double_t fdecayall=0;
+    Double_t fdaugters[fpath->npaths];
+    calculateDecay(fdecayall,fparent, fdaugters, l,e,p1n,p2n,py,N0);
+    //! fdecay2n
+    Double_t fdecay2n=fparent*2*(ne[0]*(1-ne[0]))*p2n[0]*(randcoinf1n*(1-randcoinfgt0n));
+    for (Int_t i=0;i<fpath->npaths;i++){
+#ifdef PATHFLOW
+        if (fpath->ispathhasflow[i]){
+#endif
+            fdecay2n+=fdaugters[i]*2*(ne[fpath->decaymap[i][fpath->ndecay[i]-1]]*(1-ne[fpath->decaymap[i][fpath->ndecay[i]-1]]))*p2n[fpath->decaymap[i][fpath->ndecay[i]-1]]*(randcoinf1n*(1-randcoinfgt0n));
+#ifdef PATHFLOW
+        }
+#endif
+    }
+    return fdecay2n+par[fpath->nri5+4]+par[fpath->nri5+5]*t;
+}
+
+Double_t fitF::fcndecay2n_c134(Double_t *x, Double_t *par) const
+{
+    Double_t t=x[0];
+    Double_t* l=&par[0];
+    Double_t e[fpath->nri];
+    for (Int_t i=0;i<fpath->nri;i++) e[i]=TMath::Exp(-l[i]*t);
+    Double_t* p1n=&par[fpath->nri];
+    Double_t* p2n=&par[fpath->nri2];
+    Double_t* py=&par[fpath->nri3];
+    Double_t* ne=&par[fpath->nri4];
+    Double_t N0=par[fpath->nri5]/l[0];
+    Double_t randcoinf2n=*p[fpath->nri5+3];
+    Double_t randcoinfgt0n=*p[fpath->nri5+2];
+    Double_t randcoinf1n=*p[fpath->nri5+1];
+    Double_t fparent=0;
+    Double_t fdecayall=0;
+    Double_t fdaugters[fpath->npaths];
+    calculateDecay(fdecayall,fparent, fdaugters, l,e,p1n,p2n,py,N0);
+    //! fdecay2n
+    Double_t fdecay2n=fparent*(-ne[0]*ne[0]*p2n[0]*randcoinf2n+randcoinf2n+ne[0]*p1n[0]*(randcoinf1n*(1-randcoinfgt0n)-randcoinf2n)+2*(ne[0]*(1-ne[0]))*p2n[0]*(randcoinf1n*(1-randcoinfgt0n)-randcoinf2n));
+    for (Int_t i=0;i<fpath->npaths;i++){
+#ifdef PATHFLOW
+        if (fpath->ispathhasflow[i]){
+#endif
+            fdecay2n+=fdaugters[i]*(ne[fpath->decaymap[i][fpath->ndecay[i]-1]]*ne[fpath->decaymap[i][fpath->ndecay[i]-1]]*p2n[fpath->decaymap[i][fpath->ndecay[i]-1]]*(1-randcoinf2n-randcoinfgt0n)+randcoinf2n+ne[fpath->decaymap[i][fpath->ndecay[i]-1]]*p1n[fpath->decaymap[i][fpath->ndecay[i]-1]]*(randcoinf1n*(1-randcoinfgt0n)-randcoinf2n)+2*(ne[fpath->decaymap[i][fpath->ndecay[i]-1]]*(1-ne[fpath->decaymap[i][fpath->ndecay[i]-1]]))*p2n[fpath->decaymap[i][fpath->ndecay[i]-1]]*(randcoinf1n*(1-randcoinfgt0n)-randcoinf2n));
+#ifdef PATHFLOW
+        }
+#endif
+    }
+    return fdecay2n+par[fpath->nri5+4]+par[fpath->nri5+5]*t;
+}
+
+
+
 void fitF::calculateDecay(Double_t &fdecayall,Double_t &fparent, Double_t* fdaugters, Double_t *l,Double_t *e,Double_t *p1n,Double_t *p2n,Double_t *py,Double_t N0) const
 {
     fparent=l[0]*N0*e[0];

@@ -48,16 +48,25 @@ add_executable(makefunction
 target_link_libraries(makefunction ${ROOT_LIBRARIES})
 target_link_libraries(makefunction fitF)
 
+add_executable(simulation
+    ${sources} ${headers}
+    mainsimulation.cc)
+target_link_libraries(simulation ${ROOT_LIBRARIES})
+target_link_libraries(simulation fitF)
+
 #----------------------------------------------------------------------------
 # Copy all resources including scripts, examples, text files, etc... to the build directory, i.e. the directory in which we
 # build project. This is so that we can us the resources because it
 # relies on these scripts being in the current working directory.
 #
 set(PROJ_DATA
+  simparmsex.txt
   parmsex.txt
   testdata.root
   FRDM-QRPA12-halflife.txt
   stable.csv
+  anasim.C
+  runsinglefit.sh
   )
 
 

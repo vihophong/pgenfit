@@ -1,3 +1,15 @@
+//
+// ********************************************************************
+// * License and Disclaimer                                           *
+// *                                                                  *
+// * Copyright@2019 Vi Ho Phong, email: phong@ribf.riken.jp           *
+// *                                                                  *
+// * By using,  copying,  modifying or  distributing the software (or *
+// * any work based  on the software)  you  agree  to acknowledge its *
+// * use  in  resulting  scientific  publications.                    *
+// ********************************************************************
+//
+
 #include <iostream>
 #include "unbinfit.hh"
 

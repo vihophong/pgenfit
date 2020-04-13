@@ -1,3 +1,15 @@
+//
+// ********************************************************************
+// * License and Disclaimer                                           *
+// *                                                                  *
+// * Copyright@2019 Vi Ho Phong, email: phong@ribf.riken.jp           *
+// *                                                                  *
+// * By using,  copying,  modifying or  distributing the software (or *
+// * any work based  on the software)  you  agree  to acknowledge its *
+// * use  in  resulting  scientific  publications.                    *
+// ********************************************************************
+//
+
 #include <iostream>
 #include "unbinfit.hh"
 
@@ -18,7 +30,6 @@ int main(int argc, char *argv[])
         sprintf(inputRootFile,"testdata.root");
         //keep default start time (0.08s)
         fit->Init(inpparms,inputRootFile);
-
         fit->setOutputFile(argv[1]);
         char outputTextFile[1000];
         sprintf(outputTextFile,"%s.txt",argv[1]);
@@ -34,16 +45,7 @@ int main(int argc, char *argv[])
         fit->setStartTime(atof(argv[4]));
         fit->setNBinHists(atoi(argv[5]));
         fit->Init(argv[1],argv[2]);
-
         fit->setOutputFile(argv[3]);
-        char outputTextFile[1000];
-        sprintf(outputTextFile,"%s.txt",argv[3]);
-        std::ofstream ofs(outputTextFile);
-        for (Int_t i=0;i<argc;i++){
-            ofs<<argv[i]<<"\t";
-        }
-        ofs<<std::endl;
-
         fit->setNumberOfMC(atoi(argv[6]));
         fit->RunBinFit();
     }else{
