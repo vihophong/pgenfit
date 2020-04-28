@@ -20,7 +20,7 @@
 #include <vector>
 #include <list>
 
-#define EVAL_FAST
+//#define EVAL_FAST
 #define PATHFLOW
 //set if you wish parent neutron efficiency to be distributed from 40 to 68%
 #define PARENT_NEUEFF_UNIFORM

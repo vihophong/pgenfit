@@ -73,9 +73,9 @@ void decaypath::Init(char* inputParms)
 
 void decaypath::ProcessMember(MemberDef *obj)
 {
-    char temp[100];
-    sprintf(temp,"^{%i}",obj->n+obj->z);
-    obj->name=obj->name.Prepend(temp);
+    //char temp[100];
+    //sprintf(temp,"^{%i}",obj->n+obj->z);
+    //obj->name=obj->name.Prepend(temp);
 
     //! further processing
     if (obj->decay_hl<0){

@@ -128,7 +128,7 @@ void unbinfit::Init(char* inputParms, char* inputData)
     hSB2=(TH1F*) gDirectory->Get(tempchar1);
 }
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-void unbinfit::fitBackground()
+void unbinfit::fitBackground(Int_t opt)
 {
     // Fit and get positive backgrounds
     //!*****************************************
@@ -145,7 +145,7 @@ void unbinfit::fitBackground()
     // bkg pdf
     bkgmodelneg= new fitFbkg("bkgmodel","bkgmodel",*xbkg,*y,*bkg1nratio,*bkg2nratio,slope1,slope2,slope3);
     // fit background
-    bkgmodelneg->fitTo(*databkg,NumCPU(ncpu),Save()) ;
+    if (opt==0) bkgmodelneg->fitTo(*databkg,NumCPU(ncpu),Save()) ;
 
     //!*****************************************
     //! Prepare positive background function
@@ -787,7 +787,7 @@ void unbinfit::writeResults()
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 void unbinfit::RunBinFit()
 {
-    fitBackground();
+    fitBackground(1);
     initFitParameters();
     if (ffitopt==0)
         setNormalFit();
@@ -1158,7 +1158,7 @@ void unbinfit::plotResultsMore(Int_t opt)
         chisquare=2*chisquare;
         cout<<"k="<<k<<endl;
         cout<<"ndf="<<fitCovQual<<endl;
-        cout<<"chisquare/ndf="<<chisquare/(k+fitCovQual)<<endl;
+        cout<<"chisquare/ndf="<<chisquare/(fitCovQual)<<endl;
         resplot_0n=new TGraphErrors(k,xres,yres,0,yreserr);
         k=0;
         for (Int_t i=0;i<hB->GetNbinsX();i++){

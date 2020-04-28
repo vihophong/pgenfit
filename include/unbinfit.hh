@@ -79,7 +79,7 @@ class unbinfit
 
     void generateRoofitEvaluate();
 
-    void fitBackground();
+    void fitBackground(Int_t opt=0);
 
     void initFitParameters();
     void setNormalFit();//decide parameter is fix or not
