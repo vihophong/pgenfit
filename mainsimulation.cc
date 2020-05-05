@@ -18,7 +18,6 @@ int main(int argc, char *argv[])
 {
     if (argc==4) {
         simulation* sim=new simulation(argv[1]);
-
         sim->readSimulationParameters(argv[2]);
         TFile* fout=new TFile(argv[3],"recreate");
         fout->cd();

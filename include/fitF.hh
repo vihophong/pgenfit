@@ -50,15 +50,14 @@ public:
   Double_t fcndecay1n_parent(Double_t *x, Double_t *par) const;
   Double_t fcndecay2n_parent(Double_t *x, Double_t *par) const;
   Double_t fcndecay_daugter(Double_t *x, Double_t *par) const{
-      return fcndecay(x, par)-fcndecay_parent(x, par)+par[fpath->nri5+4]+par[fpath->nri5+5]*x[0];
+      return fcndecay(x, par)-fcndecay_parent(x, par)+par[fpath->nri5+8]+par[fpath->nri5+9]*x[0];
   }
   Double_t fcndecay1n_daugter(Double_t *x, Double_t *par) const{
-      return fcndecay1n(x, par)-fcndecay1n_parent(x, par)+par[fpath->nri5+4]+par[fpath->nri5+5]*x[0];
+      return fcndecay1n(x, par)-fcndecay1n_parent(x, par)+par[fpath->nri5+8]+par[fpath->nri5+9]*x[0];
   }
   Double_t fcndecay2n_daugter(Double_t *x, Double_t *par) const{
-      return fcndecay2n(x, par)-fcndecay2n_parent(x, par)+par[fpath->nri5+4]+par[fpath->nri5+5]*x[0];
+      return fcndecay2n(x, par)-fcndecay2n_parent(x, par)+par[fpath->nri5+8]+par[fpath->nri5+9]*x[0];
   }
-
 
   Double_t fcndecay1n_c1(Double_t *x, Double_t *par) const;
   Double_t fcndecay1n_c2(Double_t *x, Double_t *par) const;
@@ -77,9 +76,9 @@ public:
 
 protected:
   path* fpath;
-  void calculateDecay(Double_t &fdecayall,Double_t &fparent, Double_t* fdaugters, Double_t *l,Double_t *e,Double_t *p1n,Double_t *p2n,Double_t *py,Double_t N0) const;
-  Double_t calculateDecay1n(Double_t fparent, Double_t* fdaugters, Double_t *p1n,Double_t *p2n,Double_t *ne,Double_t randcoinf1n,Double_t randcoinfgt0n) const;
-  Double_t calculateDecay2n(Double_t fparent, Double_t* fdaugters, Double_t *p1n,Double_t *p2n,Double_t *ne,Double_t randcoinf1n,Double_t randcoinfgt0n,Double_t randcoinf2n) const;
+  void calculateDecay(Double_t &fdecayall,Double_t &fparent, Double_t* fdaugters, Double_t *l,Double_t *e,Double_t *p1n,Double_t *p2n,Double_t *py,Double_t N0,Double_t be) const;
+  Double_t calculateDecay1n(Double_t fparent, Double_t* fdaugters, Double_t *p1n,Double_t *p2n,Double_t *ne,Double_t randcoinf1n,Double_t randcoinfgt0n,Double_t be,Double_t b1ne,Double_t b2ne,Double_t n1n2ne) const;
+  Double_t calculateDecay2n(Double_t fparent, Double_t* fdaugters, Double_t *p1n,Double_t *p2n,Double_t *ne,Double_t randcoinf1n,Double_t randcoinfgt0n,Double_t be,Double_t randcoinf2n,Double_t b1ne,Double_t b2ne,Double_t n1n2ne) const;
 
   RooRealProxy x ;
   RooCategoryProxy y ;

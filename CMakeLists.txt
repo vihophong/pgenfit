@@ -62,6 +62,7 @@ target_link_libraries(simulation fitF)
 set(PROJ_DATA
   simparmsex.txt
   parmsex.txt
+  effparmsex.txt
   testdata.root
   FRDM-QRPA12-halflife.txt
   stable.csv

@@ -50,6 +50,7 @@ unbinfit::unbinfit()
     rseed=new TRandom3(0);
     fnMC=0;
 
+    for (int i=0;i<kmaxparms;i++)ipVal[i]=i;
     fitStatus=-9999;
     fitCovQual=-9999;
     fitNumInvalidNLL=-9999;
@@ -271,6 +272,48 @@ void unbinfit::initFitParameters()
     pvar[fdecaypath->getNMember()*5+2]->setError(randcoinfgt0nerr);
     pvar[fdecaypath->getNMember()*5+3]->setError(randcoinf2nerr);
 
+    // Initialize correction factors for beta and neutron efficiency of parent (1n,2n) decay
+    std::string line;
+    std::ifstream infile(finputEffParms);
+    Int_t nlinesread = 0;
+    Double_t be,b1ne,b2ne,n1n2ne;
+    Double_t err_be,err_b1ne,err_b2ne,err_n1n2ne;
+    Int_t isvary_be,isvary_b1ne,isvary_b2ne,isvary_n1n2ne;
+    while (std::getline(infile, line))
+    {
+        std::istringstream iss(line);
+        if (line[0]=='#') continue;
+        if (!(iss >> be >> err_be >> b1ne >> err_b1ne >> b2ne >> err_b2ne >> n1n2ne >> err_n1n2ne)) break;
+        nlinesread++;
+    }
+
+    if (be<0) {isvary_be=1;be=-be;}else{isvary_be=0;}
+    if (b1ne<0){isvary_b1ne=1;b1ne=-b1ne;}else{isvary_b1ne=0;}
+    if (b2ne<0){isvary_b2ne=1;b2ne=-b2ne;}else{isvary_b2ne=0;}
+    if (n1n2ne<0){isvary_n1n2ne=1;n1n2ne=-n1n2ne;}else{isvary_n1n2ne=0;}
+
+    std::cout<<"read-in efficiency factors:"<<std::endl;
+    std::cout<<be<<"\t"<<err_be<<"\t"<<b1ne<<"\t"<<err_b1ne<<"\t"<<b2ne<<"\t"<<err_b2ne<<"\t"<<n1n2ne<<"\t"<<err_n1n2ne<<"\t"<<std::endl;
+
+    p[fdecaypath->getNMember()*5+4]=new RooRealVar(Form("p%d",fdecaypath->getNMember()*5+4),Form("p%d",fdecaypath->getNMember()*5+4),be,be-10*err_be,be+10*err_be);
+    p[fdecaypath->getNMember()*5+5]=new RooRealVar(Form("p%d",fdecaypath->getNMember()*5+5),Form("p%d",fdecaypath->getNMember()*5+5),b1ne,b1ne-10*err_b1ne,b1ne+10*err_b1ne);
+    p[fdecaypath->getNMember()*5+6]=new RooRealVar(Form("p%d",fdecaypath->getNMember()*5+6),Form("p%d",fdecaypath->getNMember()*5+6),b2ne,b2ne-10*err_b2ne,b2ne+10*err_b2ne);
+    p[fdecaypath->getNMember()*5+7]=new RooRealVar(Form("p%d",fdecaypath->getNMember()*5+7),Form("p%d",fdecaypath->getNMember()*5+7),n1n2ne,n1n2ne-10*err_n1n2ne,n1n2ne+10*err_n1n2ne);
+    pvar[fdecaypath->getNMember()*5+4]=(RooRealVar*) p[fdecaypath->getNMember()*5+4];
+    pvar[fdecaypath->getNMember()*5+5]=(RooRealVar*) p[fdecaypath->getNMember()*5+5];
+    pvar[fdecaypath->getNMember()*5+6]=(RooRealVar*) p[fdecaypath->getNMember()*5+6];
+    pvar[fdecaypath->getNMember()*5+7]=(RooRealVar*) p[fdecaypath->getNMember()*5+7];
+    pvar[fdecaypath->getNMember()*5+4]->setError(err_be);
+    pvar[fdecaypath->getNMember()*5+5]->setError(err_b1ne);
+    pvar[fdecaypath->getNMember()*5+6]->setError(err_b2ne);
+    pvar[fdecaypath->getNMember()*5+7]->setError(err_n1n2ne);
+
+    if (isvary_be==0) pvar[fdecaypath->getNMember()*5+4]->setConstant(kTRUE);
+    if (isvary_b1ne==0) pvar[fdecaypath->getNMember()*5+5]->setConstant(kTRUE);
+    if (isvary_b2ne==0) pvar[fdecaypath->getNMember()*5+6]->setConstant(kTRUE);
+    if (isvary_n1n2ne==0) pvar[fdecaypath->getNMember()*5+7]->setConstant(kTRUE);
+
+
     // set background/signal counts
     Double_t nnsig=tree->Draw("",Form("x>%f&&x<%f",p_deadtime,p_timerange),"goff");
     Double_t nnbkg=tree->Draw("",Form("x<%f&&x>%f",-p_deadtime,-p_timerange),"goff");
@@ -465,7 +508,7 @@ void unbinfit::prepareMonteCarloData(int nevents)
 
 void unbinfit::getParameters()
 {
-    for (int i=0;i<fdecaypath->getNMember()*5+4;i++){
+    for (int i=0;i<fdecaypath->getNMember()*5+8;i++){
         pVal[i]=pvar[i]->getVal();
         pValError[i]=pvar[i]->getError();
     }
@@ -494,9 +537,8 @@ void unbinfit::getParameters()
 
 void unbinfit::setCentralParameters()
 {
-    for (int i=0;i<fdecaypath->getNMember()*5+4;i++){
+    for (int i=0;i<fdecaypath->getNMember()*5+8;i++){
         pCentralVal[i]=pvar[i]->getVal();
-        ipVal[i]=i;
         if (pvar[i]->isConstant()) ispVary[i]=0;
         else ispVary[i]=1;
     }
@@ -514,7 +556,7 @@ void unbinfit::setCentralParameters()
 
 void unbinfit::printCurrentParameters()
 {
-    for (int i=0;i<fdecaypath->getNMember()*5+4;i++){
+    for (int i=0;i<fdecaypath->getNMember()*5+8;i++){
         std::cout<<"parms"<<i<<"=\t"<<pvar[i]->getVal()<<" +/- "<<pvar[i]->getError()<<"\tisfix="<<pvar[i]->isConstant()<<std::endl;
     }
     std::cout<<"nbkg=\t"<<nbkg->getVal()<<" +/- "<<nbkg->getError()<<std::endl;
@@ -528,7 +570,7 @@ void unbinfit::printCurrentParameters()
 
 void unbinfit::setValParameters()
 {
-    for (int i=0;i<fdecaypath->getNMember()*5+4;i++){
+    for (int i=0;i<fdecaypath->getNMember()*5+8;i++){
         pvar[i]->setVal(pVal[i]);
     }
     nbkg->setVal(nbkgVal);
@@ -539,22 +581,22 @@ void unbinfit::setValParameters()
     slope3pos->setVal(slope3posVal);
 
     //! for binfit
-    for (int i=0;i<fdecaypath->getNMember()*5+4;i++){//decay parameters
+    for (int i=0;i<fdecaypath->getNMember()*5+8;i++){//decay parameters
         binfitparms[i]=pVal[i];
     }
     binfitparms[fdecaypath->getNMember()*5]=nsig_hB_firstbin;//initial activity
-    binfitparms[fdecaypath->getNMember()*5+4]=binfitbkgparms[0];//bkg hdecay offset
-    binfitparms[fdecaypath->getNMember()*5+5]=binfitbkgparms[1];//bkg hdecay slope
-    binfitparms[fdecaypath->getNMember()*5+6]=binfitbkgparms[2];//bkg hdecay1n offset
-    binfitparms[fdecaypath->getNMember()*5+7]=binfitbkgparms[3];//bkg hdecay1n slope
-    binfitparms[fdecaypath->getNMember()*5+8]=binfitbkgparms[4];//bkg hdecay2n offset
-    binfitparms[fdecaypath->getNMember()*5+9]=binfitbkgparms[5];//bkg hdecay2n slope
+    binfitparms[fdecaypath->getNMember()*5+8]=binfitbkgparms[0];//bkg hdecay offset
+    binfitparms[fdecaypath->getNMember()*5+9]=binfitbkgparms[1];//bkg hdecay slope
+    binfitparms[fdecaypath->getNMember()*5+10]=binfitbkgparms[2];//bkg hdecay1n offset
+    binfitparms[fdecaypath->getNMember()*5+11]=binfitbkgparms[3];//bkg hdecay1n slope
+    binfitparms[fdecaypath->getNMember()*5+12]=binfitbkgparms[4];//bkg hdecay2n offset
+    binfitparms[fdecaypath->getNMember()*5+13]=binfitbkgparms[5];//bkg hdecay2n slope
 }
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 void unbinfit::generateMC()
 {
-    for (int i=0;i<fdecaypath->getNMember()*5+4;i++){
+    for (int i=0;i<fdecaypath->getNMember()*5+8;i++){
         if ((pvar[i]->isConstant())&&pValError[i]!=0) pVal[i]=rseed->Gaus(pCentralVal[i],pValError[i]);
         else pVal[i]=pCentralVal[i];
 
@@ -586,7 +628,6 @@ void unbinfit::generateMC()
     //binfitbkgparms[3]=rseed->Gaus(fSB_bkgpos->GetParameter(1),fB_bkgneg->GetParError(1));
     //binfitbkgparms[4]=rseed->Gaus(fSB2_bkgpos->GetParameter(0),fB_bkgneg->GetParError(0));
     //binfitbkgparms[5]=rseed->Gaus(fSB2_bkgpos->GetParameter(1),fB_bkgneg->GetParError(1));
-
 }
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
@@ -715,27 +756,27 @@ void unbinfit::plotResults()
 
     totdecaymodelforplot=new fitF("totdecaymodelforplot","totdecaymodelforplot",*x,*y,p);
     totdecaymodelforplot->initPath();
-    fB=new TF1("fB",totdecaymodelforplot,&fitF::fcndecay,p_deadtime,p_timerange,fdecaypath->getNMember()*5+6,"fitF","fcndecay");
-    for (int i=0;i<fdecaypath->getNMember()*5+4;i++){
+    fB=new TF1("fB",totdecaymodelforplot,&fitF::fcndecay,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay");
+    for (int i=0;i<fdecaypath->getNMember()*5+8;i++){
         fB->FixParameter(i,pvar[i]->getVal());
     }
-    fB->FixParameter(fdecaypath->getNMember()*5+4,b0);
-    fB->FixParameter(fdecaypath->getNMember()*5+5,a0);
+    fB->FixParameter(fdecaypath->getNMember()*5+8,b0);
+    fB->FixParameter(fdecaypath->getNMember()*5+9,a0);
 
 
-    fSB=new TF1("fSB",totdecaymodelforplot,&fitF::fcndecay1n,p_deadtime,p_timerange,fdecaypath->getNMember()*5+6,"fitF","fcndecay1n");
-    for (int i=0;i<fdecaypath->getNMember()*5+4;i++){
+    fSB=new TF1("fSB",totdecaymodelforplot,&fitF::fcndecay1n,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay1n");
+    for (int i=0;i<fdecaypath->getNMember()*5+8;i++){
         fSB->FixParameter(i,pvar[i]->getVal());
     }
-    fSB->FixParameter(fdecaypath->getNMember()*5+4,b1);
-    fSB->FixParameter(fdecaypath->getNMember()*5+5,a1);
+    fSB->FixParameter(fdecaypath->getNMember()*5+8,b1);
+    fSB->FixParameter(fdecaypath->getNMember()*5+9,a1);
 
-    fSB2=new TF1("fSB2",totdecaymodelforplot,&fitF::fcndecay2n,p_deadtime,p_timerange,fdecaypath->getNMember()*5+6,"fitF","fcndecay2n");
-    for (int i=0;i<fdecaypath->getNMember()*5+4;i++){
+    fSB2=new TF1("fSB2",totdecaymodelforplot,&fitF::fcndecay2n,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay2n");
+    for (int i=0;i<fdecaypath->getNMember()*5+8;i++){
         fSB2->FixParameter(i,pvar[i]->getVal());
     }
-    fSB2->FixParameter(fdecaypath->getNMember()*5+4,b2);
-    fSB2->FixParameter(fdecaypath->getNMember()*5+5,a2);
+    fSB2->FixParameter(fdecaypath->getNMember()*5+8,b2);
+    fSB2->FixParameter(fdecaypath->getNMember()*5+9,a2);
 
     //! set fix parameters
     nsig_hB_firstbin=model0nCurve->Eval(p_deadtime)-fB_bkgpos->Eval(p_deadtime);
@@ -744,24 +785,24 @@ void unbinfit::plotResults()
     fSB2->FixParameter(fdecaypath->getNMember()*5,nsig_hB_firstbin);
 
     //! construct parent/daugters decay components for plotting demonstration
-    fB_parent=new TF1("fB_parent",totdecaymodelforplot,&fitF::fcndecay_parent,p_deadtime,p_timerange,fdecaypath->getNMember()*5+6,"fitF","fcndecay_parent");
-    fB_daugter=new TF1("fB_daugter",totdecaymodelforplot,&fitF::fcndecay_daugter,p_deadtime,p_timerange,fdecaypath->getNMember()*5+6,"fitF","fcndecay_daugter");
+    fB_parent=new TF1("fB_parent",totdecaymodelforplot,&fitF::fcndecay_parent,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay_parent");
+    fB_daugter=new TF1("fB_daugter",totdecaymodelforplot,&fitF::fcndecay_daugter,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay_daugter");
 
-    fSB_parent=new TF1("fSB_parent",totdecaymodelforplot,&fitF::fcndecay1n_parent,p_deadtime,p_timerange,fdecaypath->getNMember()*5+6,"fitF","fcndecay1n_parent");
-    fSB_daugter=new TF1("fSB_daugter",totdecaymodelforplot,&fitF::fcndecay1n_daugter,p_deadtime,p_timerange,fdecaypath->getNMember()*5+6,"fitF","fcndecay1n_daugter");
+    fSB_parent=new TF1("fSB_parent",totdecaymodelforplot,&fitF::fcndecay1n_parent,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay1n_parent");
+    fSB_daugter=new TF1("fSB_daugter",totdecaymodelforplot,&fitF::fcndecay1n_daugter,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay1n_daugter");
 
-    fSB2_parent=new TF1("fSB2_parent",totdecaymodelforplot,&fitF::fcndecay2n_parent,p_deadtime,p_timerange,fdecaypath->getNMember()*5+6,"fitF","fcndecay2n_parent");
-    fSB2_daugter=new TF1("fSB2_daugter",totdecaymodelforplot,&fitF::fcndecay2n_daugter,p_deadtime,p_timerange,fdecaypath->getNMember()*5+6,"fitF","fcndecay2n_daugter");
+    fSB2_parent=new TF1("fSB2_parent",totdecaymodelforplot,&fitF::fcndecay2n_parent,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay2n_parent");
+    fSB2_daugter=new TF1("fSB2_daugter",totdecaymodelforplot,&fitF::fcndecay2n_daugter,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay2n_daugter");
 
-    fSB_c1=new TF1("fSB_c1",totdecaymodelforplot,&fitF::fcndecay1n_c1,p_deadtime,p_timerange,fdecaypath->getNMember()*5+6,"fitF","fcndecay1n_c1");
-    fSB_c2=new TF1("fSB_c2",totdecaymodelforplot,&fitF::fcndecay1n_c2,p_deadtime,p_timerange,fdecaypath->getNMember()*5+6,"fitF","fcndecay1n_c2");
-    fSB_c3=new TF1("fSB_c3",totdecaymodelforplot,&fitF::fcndecay1n_c3,p_deadtime,p_timerange,fdecaypath->getNMember()*5+6,"fitF","fcndecay1n_c3");
-    fSB_c23=new TF1("fSB_c23",totdecaymodelforplot,&fitF::fcndecay1n_c23,p_deadtime,p_timerange,fdecaypath->getNMember()*5+6,"fitF","fcndecay1n_c23");
-    fSB2_c1=new TF1("fSB2_c1",totdecaymodelforplot,&fitF::fcndecay2n_c1,p_deadtime,p_timerange,fdecaypath->getNMember()*5+6,"fitF","fcndecay2n_c1");
-    fSB2_c2=new TF1("fSB2_c2",totdecaymodelforplot,&fitF::fcndecay2n_c2,p_deadtime,p_timerange,fdecaypath->getNMember()*5+6,"fitF","fcndecay2n_c2");
-    fSB2_c3=new TF1("fSB2_c3",totdecaymodelforplot,&fitF::fcndecay2n_c3,p_deadtime,p_timerange,fdecaypath->getNMember()*5+6,"fitF","fcndecay2n_c3");
-    fSB2_c4=new TF1("fSB2_c4",totdecaymodelforplot,&fitF::fcndecay2n_c4,p_deadtime,p_timerange,fdecaypath->getNMember()*5+6,"fitF","fcndecay2n_c4");
-    fSB2_c134=new TF1("fSB2_c134",totdecaymodelforplot,&fitF::fcndecay2n_c134,p_deadtime,p_timerange,fdecaypath->getNMember()*5+6,"fitF","fcndecay2n_c134");
+    fSB_c1=new TF1("fSB_c1",totdecaymodelforplot,&fitF::fcndecay1n_c1,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay1n_c1");
+    fSB_c2=new TF1("fSB_c2",totdecaymodelforplot,&fitF::fcndecay1n_c2,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay1n_c2");
+    fSB_c3=new TF1("fSB_c3",totdecaymodelforplot,&fitF::fcndecay1n_c3,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay1n_c3");
+    fSB_c23=new TF1("fSB_c23",totdecaymodelforplot,&fitF::fcndecay1n_c23,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay1n_c23");
+    fSB2_c1=new TF1("fSB2_c1",totdecaymodelforplot,&fitF::fcndecay2n_c1,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay2n_c1");
+    fSB2_c2=new TF1("fSB2_c2",totdecaymodelforplot,&fitF::fcndecay2n_c2,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay2n_c2");
+    fSB2_c3=new TF1("fSB2_c3",totdecaymodelforplot,&fitF::fcndecay2n_c3,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay2n_c3");
+    fSB2_c4=new TF1("fSB2_c4",totdecaymodelforplot,&fitF::fcndecay2n_c4,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay2n_c4");
+    fSB2_c134=new TF1("fSB2_c134",totdecaymodelforplot,&fitF::fcndecay2n_c134,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay2n_c134");
 
     writeFitComponents();
     plotResultsMore();
@@ -774,7 +815,7 @@ void unbinfit::writeResults()
     char tempstr[500];
     sprintf(tempstr,"%s.txt",foutputData);
     std::ofstream ofs(tempstr,std::ios::app);
-    for (int i=0;i<fdecaypath->getNMember()*5+4;i++){
+    for (int i=0;i<fdecaypath->getNMember()*5+8;i++){
         if (!pvar[i]->isConstant())
             ofs<<i<<"\t"<<pvar[i]->getVal()<<"\t"<<pvar[i]->getError()<<std::endl;
     }
@@ -801,27 +842,27 @@ void unbinfit::RunBinFit()
     getParameters();
 
    totdecaymodel->initPath();
-   fB=new TF1("fB",totdecaymodel,&fitF::fcndecay,p_deadtime,p_timerange,fdecaypath->getNMember()*5+6,"fitF","fcndecay");
-   for (int i=0;i<fdecaypath->getNMember()*5+4;i++){
+   fB=new TF1("fB",totdecaymodel,&fitF::fcndecay,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay");
+   for (int i=0;i<fdecaypath->getNMember()*5+8;i++){
        fB->FixParameter(i,pCentralVal[i]);
    }
-   fB->FixParameter(fdecaypath->getNMember()*5+4,100);
-   fB->FixParameter(fdecaypath->getNMember()*5+5,0);
+   fB->FixParameter(fdecaypath->getNMember()*5+8,100);
+   fB->FixParameter(fdecaypath->getNMember()*5+9,0);
 
 
-   fSB=new TF1("fSB",totdecaymodel,&fitF::fcndecay1n,p_deadtime,p_timerange,fdecaypath->getNMember()*5+6,"fitF","fcndecay1n");
-   for (int i=0;i<fdecaypath->getNMember()*5+4;i++){
+   fSB=new TF1("fSB",totdecaymodel,&fitF::fcndecay1n,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay1n");
+   for (int i=0;i<fdecaypath->getNMember()*5+8;i++){
        fSB->FixParameter(i,pCentralVal[i]);
    }
-   fSB->FixParameter(fdecaypath->getNMember()*5+4,10);
-   fSB->FixParameter(fdecaypath->getNMember()*5+5,0);
+   fSB->FixParameter(fdecaypath->getNMember()*5+8,10);
+   fSB->FixParameter(fdecaypath->getNMember()*5+9,0);
 
-   fSB2=new TF1("fSB2",totdecaymodel,&fitF::fcndecay2n,p_deadtime,p_timerange,fdecaypath->getNMember()*5+6,"fitF","fcndecay2n");
-   for (int i=0;i<fdecaypath->getNMember()*5+4;i++){
+   fSB2=new TF1("fSB2",totdecaymodel,&fitF::fcndecay2n,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay2n");
+   for (int i=0;i<fdecaypath->getNMember()*5+8;i++){
        fSB2->FixParameter(i,pCentralVal[i]);
    }
-   fSB2->FixParameter(fdecaypath->getNMember()*5+4,1);
-   fSB2->FixParameter(fdecaypath->getNMember()*5+5,0);
+   fSB2->FixParameter(fdecaypath->getNMember()*5+8,1);
+   fSB2->FixParameter(fdecaypath->getNMember()*5+9,0);
 
    //! set fix parameters
    fB->FixParameter(fdecaypath->getNMember()*5,nsig_hB_firstbin);
@@ -859,12 +900,11 @@ void unbinfit::RunBinFit()
 
    GlobalChi2 globalChi2(chi2_B, chi2_SB, chi2_SB2);
 
-
    ROOT::Fit::Fitter fitter;
 
    setValParameters();//initiate parameters
-   fitter.Config().SetParamsSettings(fdecaypath->getNMember()*5+10,binfitparms);
-   for (int i=0;i<fdecaypath->getNMember()*5+4;i++){
+   fitter.Config().SetParamsSettings(fdecaypath->getNMember()*5+14,binfitparms);
+   for (int i=0;i<fdecaypath->getNMember()*5+8;i++){
        if (pvar[i]->isConstant()&&i!=fdecaypath->getNMember()*5){
            fitter.Config().ParSettings(i).Fix();
        }else{
@@ -874,17 +914,16 @@ void unbinfit::RunBinFit()
                fitter.Config().ParSettings(i).SetLimits(pvar[i]->getMin(),pvar[i]->getMax());
        }
    }
-   for (int i=fdecaypath->getNMember()*5+4;i<fdecaypath->getNMember()*5+10;i++) fitter.Config().ParSettings(i).Fix();//fix background parameters
-
+   for (int i=fdecaypath->getNMember()*5+8;i<fdecaypath->getNMember()*5+14;i++) fitter.Config().ParSettings(i).Fix();//fix background parameters
 
    fitter.Config().SetMinimizer("Minuit2","Migrad");
    //fitter.Config().SetMinosErrors();
 
-   fitter.FitFCN(fdecaypath->getNMember()*5+10,globalChi2,0,dataB.Size()+dataSB.Size()+dataSB2.Size(),false);
+   fitter.FitFCN(fdecaypath->getNMember()*5+14,globalChi2,0,dataB.Size()+dataSB.Size()+dataSB2.Size(),false);
    fitter.Result().Print(std::cout);
    const Double_t* resultparcenter=fitter.Result().GetParams();
    const Double_t* resulterrcenter=fitter.Result().GetErrors();
-   for (Int_t i=0;i<fdecaypath->getNMember()*5+4;i++){
+   for (Int_t i=0;i<fdecaypath->getNMember()*5+8;i++){
        pVal[i]=resultparcenter[i];
        if (!pvar[i]->isConstant())
         pValError[i]=resulterrcenter[i];
@@ -900,30 +939,30 @@ void unbinfit::RunBinFit()
    char tempstr[500];
    sprintf(tempstr,"%s.txt",foutputData);
    std::ofstream ofs(tempstr,std::ios::app);
-   for (int i=0;i<fdecaypath->getNMember()*5+4;i++){
+   for (int i=0;i<fdecaypath->getNMember()*5+8;i++){
        if (!pvar[i]->isConstant())
            ofs<<i<<"\t"<<pVal[i]<<"\t"<<pValError[i]<<std::endl;
    }
 
    //! construct parent/daugters decay components for plotting demonstration
-   fB_parent=new TF1("fB_parent",totdecaymodel,&fitF::fcndecay_parent,p_deadtime,p_timerange,fdecaypath->getNMember()*5+6,"fitF","fcndecay_parent");
-   fB_daugter=new TF1("fB_daugter",totdecaymodel,&fitF::fcndecay_daugter,p_deadtime,p_timerange,fdecaypath->getNMember()*5+6,"fitF","fcndecay_daugter");
+   fB_parent=new TF1("fB_parent",totdecaymodel,&fitF::fcndecay_parent,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay_parent");
+   fB_daugter=new TF1("fB_daugter",totdecaymodel,&fitF::fcndecay_daugter,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay_daugter");
 
-   fSB_parent=new TF1("fSB_parent",totdecaymodel,&fitF::fcndecay1n_parent,p_deadtime,p_timerange,fdecaypath->getNMember()*5+6,"fitF","fcndecay1n_parent");
-   fSB_daugter=new TF1("fSB_daugter",totdecaymodel,&fitF::fcndecay1n_daugter,p_deadtime,p_timerange,fdecaypath->getNMember()*5+6,"fitF","fcndecay1n_daugter");
+   fSB_parent=new TF1("fSB_parent",totdecaymodel,&fitF::fcndecay1n_parent,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay1n_parent");
+   fSB_daugter=new TF1("fSB_daugter",totdecaymodel,&fitF::fcndecay1n_daugter,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay1n_daugter");
 
-   fSB2_parent=new TF1("fSB2_parent",totdecaymodel,&fitF::fcndecay2n_parent,p_deadtime,p_timerange,fdecaypath->getNMember()*5+6,"fitF","fcndecay2n_parent");
-   fSB2_daugter=new TF1("fSB2_daugter",totdecaymodel,&fitF::fcndecay2n_daugter,p_deadtime,p_timerange,fdecaypath->getNMember()*5+6,"fitF","fcndecay2n_daugter");
+   fSB2_parent=new TF1("fSB2_parent",totdecaymodel,&fitF::fcndecay2n_parent,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay2n_parent");
+   fSB2_daugter=new TF1("fSB2_daugter",totdecaymodel,&fitF::fcndecay2n_daugter,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay2n_daugter");
 
-   fSB_c1=new TF1("fSB_c1",totdecaymodel,&fitF::fcndecay1n_c1,p_deadtime,p_timerange,fdecaypath->getNMember()*5+6,"fitF","fcndecay1n_c1");
-   fSB_c2=new TF1("fSB_c2",totdecaymodel,&fitF::fcndecay1n_c2,p_deadtime,p_timerange,fdecaypath->getNMember()*5+6,"fitF","fcndecay1n_c2");
-   fSB_c3=new TF1("fSB_c3",totdecaymodel,&fitF::fcndecay1n_c3,p_deadtime,p_timerange,fdecaypath->getNMember()*5+6,"fitF","fcndecay1n_c3");
-   fSB_c23=new TF1("fSB_c23",totdecaymodel,&fitF::fcndecay1n_c23,p_deadtime,p_timerange,fdecaypath->getNMember()*5+6,"fitF","fcndecay1n_c23");
-   fSB2_c1=new TF1("fSB2_c1",totdecaymodel,&fitF::fcndecay2n_c1,p_deadtime,p_timerange,fdecaypath->getNMember()*5+6,"fitF","fcndecay2n_c1");
-   fSB2_c2=new TF1("fSB2_c2",totdecaymodel,&fitF::fcndecay2n_c2,p_deadtime,p_timerange,fdecaypath->getNMember()*5+6,"fitF","fcndecay2n_c2");
-   fSB2_c3=new TF1("fSB2_c3",totdecaymodel,&fitF::fcndecay2n_c3,p_deadtime,p_timerange,fdecaypath->getNMember()*5+6,"fitF","fcndecay2n_c3");
-   fSB2_c4=new TF1("fSB2_c4",totdecaymodel,&fitF::fcndecay2n_c4,p_deadtime,p_timerange,fdecaypath->getNMember()*5+6,"fitF","fcndecay2n_c4");
-   fSB2_c134=new TF1("fSB2_c134",totdecaymodel,&fitF::fcndecay2n_c134,p_deadtime,p_timerange,fdecaypath->getNMember()*5+6,"fitF","fcndecay2n_c134");
+   fSB_c1=new TF1("fSB_c1",totdecaymodel,&fitF::fcndecay1n_c1,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay1n_c1");
+   fSB_c2=new TF1("fSB_c2",totdecaymodel,&fitF::fcndecay1n_c2,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay1n_c2");
+   fSB_c3=new TF1("fSB_c3",totdecaymodel,&fitF::fcndecay1n_c3,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay1n_c3");
+   fSB_c23=new TF1("fSB_c23",totdecaymodel,&fitF::fcndecay1n_c23,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay1n_c23");
+   fSB2_c1=new TF1("fSB2_c1",totdecaymodel,&fitF::fcndecay2n_c1,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay2n_c1");
+   fSB2_c2=new TF1("fSB2_c2",totdecaymodel,&fitF::fcndecay2n_c2,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay2n_c2");
+   fSB2_c3=new TF1("fSB2_c3",totdecaymodel,&fitF::fcndecay2n_c3,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay2n_c3");
+   fSB2_c4=new TF1("fSB2_c4",totdecaymodel,&fitF::fcndecay2n_c4,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay2n_c4");
+   fSB2_c134=new TF1("fSB2_c134",totdecaymodel,&fitF::fcndecay2n_c134,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay2n_c134");
    writeFitComponents();
    hB->Write();
    hSB->Write();
@@ -933,15 +972,17 @@ void unbinfit::RunBinFit()
    for (int i=0;i<fnMC;i++){
        generateMC();
        setValParameters();
-       fitter.Config().SetParamsSettings(fdecaypath->getNMember()*5+10,binfitparms);
-       fitter.FitFCN(fdecaypath->getNMember()*5+10,globalChi2,0,dataB.Size()+dataSB.Size()+dataSB2.Size(),false);
+       fitter.Config().SetParamsSettings(fdecaypath->getNMember()*5+14,binfitparms);
+       fitter.FitFCN(fdecaypath->getNMember()*5+14,globalChi2,0,dataB.Size()+dataSB.Size()+dataSB2.Size(),false);
        fitter.Result().Print(std::cout);
        const Double_t* resultpar=fitter.Result().GetParams();
+       const Double_t* resulterr=fitter.Result().GetErrors();
+
        //const Double_t* resulterr=fitter.Result().GetErrors();
-       for (Int_t i=0;i<fdecaypath->getNMember()*5+4;i++){
+       for (Int_t i=0;i<fdecaypath->getNMember()*5+8;i++){
            pVal[i]=resultpar[i];
            if (!pvar[i]->isConstant())
-            pValError[i]=resulterrcenter[i];
+            pValError[i]=resulterr[i];
        }
        fitStatus=fitter.Result().Status();
        fitCovQual=fitter.Result().Ndf();
@@ -951,15 +992,13 @@ void unbinfit::RunBinFit()
        foutputtree->Fill();
    }
    writeOutputTree();
-
-
    closeOutputFile();
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 void unbinfit::writeFitComponents()
 {
-    for (int i=0;i<fdecaypath->getNMember()*5+6;i++){
+    for (int i=0;i<fdecaypath->getNMember()*5+10;i++){
         fB_parent->FixParameter(i,fB->GetParameter(i));
         fB_daugter->FixParameter(i,fB->GetParameter(i));
         fSB_parent->FixParameter(i,fSB->GetParameter(i));
@@ -1029,8 +1068,6 @@ void unbinfit::writeFitComponents()
     fSB2_c3->Write();
     fSB2_c4->Write();
     fSB2_c134->Write();
-
-
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -1530,12 +1567,10 @@ void unbinfit::Run()
     prepareData();
     //prepareMonteCarloData(1);
 
-
     bookOutputTree();
     //! setup stuffs for MC fits
     setCentralParameters();
     getParameters();
-
 
     //! perform first fit
     doFit();
@@ -1604,11 +1639,16 @@ void unbinfit::generateRoofitEvaluate()
         ofnc<<"double ne"<<k<<"=(*p["<<k+fpath->nri*4<<"]);"<<std::endl;
     }
 
+    ofnc<<"double be=*p["<<fpath->nri*5+4<<"];"<<std::endl;
+    ofnc<<"double b1ne=*p["<<fpath->nri*5+5<<"];"<<std::endl;
+    ofnc<<"double b2ne=*p["<<fpath->nri*5+6<<"];"<<std::endl;
+    ofnc<<"double n1n2ne=*p["<<fpath->nri*5+7<<"];"<<std::endl;
+
     ofnc<<"double N0=*p["<<fpath->nri*5<<"]/l0;"<<std::endl;
     ofnc<<"double fparentdecay=l0*N0*e0;"<<std::endl;
 
     //! all decay function
-    ofnc<<"double fdecay=fparentdecay;"<<std::endl;
+    ofnc<<"double fdecay=fparentdecay*be;"<<std::endl;
     for (Int_t k=0;k<fpath->npaths;k++){
 #ifdef PATHFLOW
         if (fpath->ispathhasflow[k]){
@@ -1662,16 +1702,8 @@ void unbinfit::generateRoofitEvaluate()
 
 
     //! calculation for 1neu
-    //! random coinc of beta decay of parent
-    //ofnc<<"double fdecay1n=fparentdecay*randcoinf1n;"<<std::endl;
-    //! decay with 1 neutron of parent
-    //ofnc<<"fdecay1n+=ne0*p1n0*fparentdecay*(1-randcoinf1n-randcoinfgt0n);"<<std::endl;
-    //! decay with 1 neutron of parent from p2n
-    //ofnc<<"fdecay1n+=2*(ne0*(1-ne0))*p2n0*fparentdecay*(1-randcoinf1n-randcoinfgt0n);"<<std::endl;
-    //! decay with 2 neutron of parent (not random 1 neutron)
-    //ofnc<<"fdecay1n-=ne0*ne0*p2n0*fparentdecay*randcoinf1n;"<<std::endl;
+    ofnc<<"double fdecay1n=fparentdecay*(be*randcoinf1n+b1ne*ne0*p1n0*(1-randcoinf1n-randcoinfgt0n)+b2ne*2*(ne0*n1n2ne*(1-ne0*n1n2ne))*p2n0*(1-randcoinf1n-randcoinfgt0n)-b2ne*ne0*n1n2ne*ne0*n1n2ne*p2n0*randcoinf1n);"<<std::endl;
 
-    ofnc<<"double fdecay1n=fparentdecay*(randcoinf1n+ne0*p1n0*(1-randcoinf1n-randcoinfgt0n)+2*(ne0*(1-ne0))*p2n0*(1-randcoinf1n-randcoinfgt0n)-ne0*ne0*p2n0*randcoinf1n);"<<std::endl;
     for (Int_t i=0;i<fpath->npaths;i++){
 #ifdef PATHFLOW
         if (fpath->ispathhasflow[i]){
@@ -1684,15 +1716,7 @@ void unbinfit::generateRoofitEvaluate()
     }
 
     //! calculation for 2neu
-    //! decay with 2 neutron from P2n of parent
-    //ofnc<<"double fdecay2n=ne0*ne0*p2n0*fparentdecay*(1-randcoinf2n-randcoinfgt0n);"<<std::endl;
-    //! random coinc of beta decay of parent
-    //ofnc<<"fdecay2n+=fparentdecay*randcoinf2n;"<<std::endl;
-    //! random 1n decay of parent
-    //ofnc<<"fdecay2n+=ne0*p1n0*fparentdecay*(randcoinf1n*(1-randcoinfgt0n)-randcoinf2n);"<<std::endl;
-    //! decay with 1 neutron from P2n of parent - randomly correlated
-    //ofnc<<"fdecay2n+=2*(ne0*(1-ne0))*p2n0*fparentdecay*(randcoinf1n*(1-randcoinfgt0n)-randcoinf2n);"<<std::endl;
-    ofnc<<"double fdecay2n=fparentdecay*(ne0*ne0*p2n0*(1-randcoinf2n-randcoinfgt0n)+randcoinf2n+ne0*p1n0*(randcoinf1n*(1-randcoinfgt0n)-randcoinf2n)+2*(ne0*(1-ne0))*p2n0*(randcoinf1n*(1-randcoinfgt0n)-randcoinf2n));"<<std::endl;
+    ofnc<<"double fdecay2n=fparentdecay*(b2ne*ne0*n1n2ne*ne0*n1n2ne*p2n0*(1-randcoinf2n-randcoinfgt0n)+randcoinf2n*be+b1ne*ne0*p1n0*(randcoinf1n*(1-randcoinfgt0n)-randcoinf2n)+b2ne*2*(ne0*n1n2ne*(1-ne0*n1n2ne))*p2n0*(randcoinf1n*(1-randcoinfgt0n)-randcoinf2n));"<<std::endl;
     for (Int_t i=0;i<fpath->npaths;i++){
 #ifdef PATHFLOW
         if (fpath->ispathhasflow[i]){

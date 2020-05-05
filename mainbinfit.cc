@@ -26,10 +26,13 @@ int main(int argc, char *argv[])
         unbinfit* fit=new unbinfit;
         char inpparms[1000];
         char inputRootFile[1000];
+        char inputeffparms[1000];
         sprintf(inpparms,"parmsex.txt");
+        sprintf(inputeffparms,"effparmsex.txt");
         sprintf(inputRootFile,"testdata.root");
         //keep default start time (0.08s)
         fit->Init(inpparms,inputRootFile);
+        fit->setInputEffParms(inputeffparms);
         fit->setOutputFile(argv[1]);
         char outputTextFile[1000];
         sprintf(outputTextFile,"%s.txt",argv[1]);
@@ -40,13 +43,14 @@ int main(int argc, char *argv[])
         ofs<<std::endl;
 
         fit->RunBinFit();
-    }else if(argc==7){
+    }else if(argc==8){
         unbinfit* fit=new unbinfit;
         fit->setStartTime(atof(argv[4]));
         fit->setNBinHists(atoi(argv[5]));
         fit->Init(argv[1],argv[2]);
         fit->setOutputFile(argv[3]);
         fit->setNumberOfMC(atoi(argv[6]));
+        fit->setInputEffParms(argv[7]);
         fit->RunBinFit();
     }else{
         std::cout<<"check inputs!"<<std::endl;

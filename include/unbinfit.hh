@@ -69,10 +69,12 @@ class unbinfit
     unbinfit();
     virtual ~unbinfit();
     void Init(char* inputParms, char* inputData);
+    void setInputEffParms(char* inputEffParms){sprintf(finputEffParms,"%s",inputEffParms);}
 
     void SetParameters();
 
     void setOutputFile(char* outputData){sprintf(foutputData,"%s",outputData);}
+
     void setStartTime(double deadtime){p_deadtime=deadtime;}
     void Run();
     void RunBinFit();
@@ -125,6 +127,7 @@ class unbinfit
     void writeFitComponents();
     char* finputParms;
     char* finputData;
+    char finputEffParms[500];
     char foutputData[500];
     TFile* fout;
     Long64_t fnentrieslimit;
@@ -292,18 +295,18 @@ class unbinfit
        }
 
        double operator() (const double *par) const {
-           double p1[nri*5+6];
-           for (int i = 0; i < nri*5+4; ++i) p1[i] = par[i];
-           p1[nri*5+4]=par[nri*5+4];
-           p1[nri*5+5]=par[nri*5+5];
-           double p2[nri*5+6];
-           for (int i = 0; i < nri*5+4; ++i) p2[i] = par[i];
-           p2[nri*5+4]=par[nri*5+6];
-           p2[nri*5+5]=par[nri*5+7];
-           double p3[nri*5+6];
-           for (int i = 0; i < nri*5+4; ++i) p3[i] = par[i];
-           p3[nri*5+4]=par[nri*5+8];
-           p3[nri*5+5]=par[nri*5+9];
+           double p1[nri*5+10];
+           for (int i = 0; i < nri*5+8; ++i) p1[i] = par[i];
+           p1[nri*5+8]=par[nri*5+8];
+           p1[nri*5+9]=par[nri*5+9];
+           double p2[nri*5+10];
+           for (int i = 0; i < nri*5+8; ++i) p2[i] = par[i];
+           p2[nri*5+8]=par[nri*5+10];
+           p2[nri*5+9]=par[nri*5+11];
+           double p3[nri*5+10];
+           for (int i = 0; i < nri*5+8; ++i) p3[i] = par[i];
+           p3[nri*5+8]=par[nri*5+12];
+           p3[nri*5+9]=par[nri*5+13];
           return (*fChi2_1)(p1) + (*fChi2_2)(p2) + (*fChi2_3)(p3);
        }
        const  ROOT::Math::IMultiGenFunction * fChi2_1;

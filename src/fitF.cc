@@ -25,7 +25,7 @@ ClassImp(fitF)
     pathfile>>nri;
     pathfile.close();
     //std::cout<<nri<<std::endl;
-    for (Int_t i=0;i<nri*5+4;i++){
+    for (Int_t i=0;i<nri*5+8;i++){
         p[i]=new RooRealProxy(Form("p%i",i),Form("p%i",i),this,*_pp[i]);
     }
  }
@@ -37,7 +37,7 @@ ClassImp(fitF)
    y("y",this,other.y)
  {
      initPath();
-     for (Int_t i=0;i<fpath->nri5+4;i++)
+     for (Int_t i=0;i<fpath->nri5+8;i++)
          p[i]=new RooRealProxy(Form("p%i",i),this,*other.p[i]);
  }
 
@@ -93,20 +93,25 @@ ClassImp(fitF)
       Double_t N0=*p[fpath->nri5]/ l[0];
 
 
+      Double_t be=*p[fpath->nri5+4];//factor of parent's beta efficiency, relative to daugters
+      Double_t b1ne=*p[fpath->nri5+5];//factor of parent's beta efficiency to 1 neutron emission, relative to daugters
+      Double_t b2ne=*p[fpath->nri5+6];//factor of parent's beta efficiency to 2 neutron emission, relative to daugters
+      Double_t n1n2ne=*p[fpath->nri5+7];//factor of parent's neutrons efficiency to 2 neutron emission, relative to 1 neutron emission.
+
       //! replace for more general expression
       Double_t fparent=0;
       Double_t fdecayall=0;
       Double_t fdaugters[fpath->npaths];
-      calculateDecay(fdecayall,fparent, fdaugters, l,e,p1n,p2n,py,N0);
+      calculateDecay(fdecayall,fparent, fdaugters, l,e,p1n,p2n,py,N0,be);
       Double_t randcoinf2n=*p[fpath->nri5+3];
       Double_t randcoinfgt0n=*p[fpath->nri5+2];
       Double_t randcoinf1n=*p[fpath->nri5+1];
 
       //! fdecay1n
-      Double_t fdecay1n=calculateDecay1n(fparent,fdaugters,p1n,p2n,ne,randcoinf1n,randcoinfgt0n);
+      Double_t fdecay1n=calculateDecay1n(fparent,fdaugters,p1n,p2n,ne,randcoinf1n,randcoinfgt0n,be,b1ne,b2ne,n1n2ne);
 
       //! fdecay2n
-      Double_t fdecay2n=calculateDecay2n(fparent,fdaugters,p1n,p2n,ne,randcoinf1n,randcoinfgt0n,randcoinf2n);
+      Double_t fdecay2n=calculateDecay2n(fparent,fdaugters,p1n,p2n,ne,randcoinf1n,randcoinfgt0n,randcoinf2n,be,b1ne,b2ne,n1n2ne);
 
       Double_t ret;
       if (y==0){
