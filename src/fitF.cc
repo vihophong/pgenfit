@@ -54,6 +54,10 @@ ClassImp(fitF)
              pathfile>>fpath->decaymap[i][j]>>fpath->nneu[i][j];
          }
      }
+     pathfile>>fpath->nisomers;
+     for (int i=0;i<fpath->nisomers;i++){
+         pathfile>>fpath->isomer_gs_index[i]>>fpath->isomer_ex_index[i];
+     }
      pathfile.close();
      fpath->nri2=fpath->nri*2;
      fpath->nri3=fpath->nri*3;

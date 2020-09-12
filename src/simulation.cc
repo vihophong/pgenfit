@@ -114,6 +114,10 @@ void simulation::BookCorrelationTree()
     ftreemlh->Branch("x",&fmlh_t,"x/D");
     ftreemlh->Branch("y",&fmlh_mult,"y/I");
 
+    ftreemlhbw=new TTree("treebw","treebw");
+    ftreemlhbw->Branch("x",&fmlhbw_t,"x/D");
+    ftreemlhbw->Branch("y",&fmlhbw_mult,"y/I");
+
     ftreecorr=new TTree("treecorr","treecorr");
 
     ftreecorr->Branch("ion",&fionData,"T/D:Tcorr/D:x/D:y/D:z/D:evt/I:mode/I:id/I:ifl/I:fl_n/I");
@@ -147,6 +151,16 @@ void simulation::BookCorrelationTree()
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
+void simulation::bookTDiffData(){
+    TFile *fintdiff = new TFile("tdiffdataex.root");
+    ftreetdiff=0;
+    fintdiff->GetObject("tree",ftreetdiff);
+    ftreetdiff->SetBranchAddress("tdiff",&ftdiff);
+    ientrytdiff=fsimparms.iTdiffEntryBegin;
+}
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
 void simulation::readSimulationParameters(char *inputfile)
 {
     std::ifstream ifscond(inputfile);
@@ -162,6 +176,9 @@ void simulation::readSimulationParameters(char *inputfile)
         if (line_head.at(0)=='#') continue;
         ss>>line_val;
 
+        if (line_head=="istdifffromfile") fsimparms.isTdiffFromFile=(Int_t)line_val;
+        if (line_head=="ntdiffentries") fsimparms.nTdiffEntries=(Int_t)line_val;
+        if (line_head=="itdiffentrybegin") fsimparms.iTdiffEntryBegin=(Int_t)line_val;
         if (line_head=="isfiximppos") fsimparms.isFixImplantPosition=(Int_t)line_val;
         if (line_head=="ishistgausbkg") fsimparms.isSpatialDistFromHist=(Int_t)line_val;
 
@@ -205,7 +222,6 @@ void simulation::readSimulationParameters(char *inputfile)
         if (line_head=="tsoffset") fsimparms.tsoffset=line_val;
         if (line_head=="neuwbeamperctg") fsimparms.neuwbeamperctg=line_val;
     }
-
 
     cout<<"*****************\nSimulation parameters:\n"<<endl;
     cout<<"Fix implant position?  "<<fsimparms.isFixImplantPosition<<endl;
@@ -261,7 +277,6 @@ void simulation::readSimulationParameters(char *inputfile)
     hhdx=NULL;
     hhdy=NULL;
 
-
     if (fsimparms.isSpatialDistFromHist!=0){
         cout<<"reading histograms hy.root, hx.root, himpx.root, himpy.root, hdx.root and hdy.root for beta background distribution"<<endl;
         TFile* f1x = TFile::Open("hx.root");
@@ -309,7 +324,6 @@ void simulation::registerDecay(MemberDef* decaymember,Int_t pathid,Double_t deca
 
     Double_t xbeta=dxbeta+fximp;
     Double_t ybeta=dybeta+fyimp;
-
 
     simulationdatatype betahit;
     betahit.evt=fprimImplantEvt;
@@ -409,7 +423,12 @@ void simulation::registerIonImplant(){
     }
 
     if (fximp<fsimparms.xmax&&fyimp<fsimparms.ymax&&fximp>=fsimparms.xmin&&fyimp>=fsimparms.ymin){
-        Double_t dtimp=rseed->Exp(1/fsimparms.rate);
+        Double_t dtimp=0;
+        if (fsimparms.isTdiffFromFile==1) // f
+            dtimp=ftdiff;
+        else
+            dtimp=rseed->Exp(1/fsimparms.rate);
+
         fprimImplantT+=dtimp;
         //! neutron associated with beam
         Double_t p1neui=rseed->Rndm()*100;
@@ -450,9 +469,18 @@ void simulation::doSingle()
 {
     //! register ion implantation decay
     Int_t currImptEvt=fprimImplantEvt;
-    while (fprimImplantEvt==currImptEvt){
-        registerIonImplant();
+    if (fsimparms.isTdiffFromFile==1){
+        ftreetdiff->GetEntry(ientrytdiff); //using tdiff from file
+        while (fprimImplantEvt==currImptEvt){
+            registerIonImplant();
+        }
+        ientrytdiff++;
+    }else{//normal mode
+        while (fprimImplantEvt==currImptEvt){
+            registerIonImplant();
+        }
     }
+
     //! register beta decay
     for (Int_t i=0;i<fdecaypathobj->getNMember();i++){
         Double_t rneu=rseed->Rndm();
@@ -667,8 +695,15 @@ void simulation::runSimulation()
     fbetaEvt=0;
     fneuEvt=0;
     cout<<"--------"<<endl;
-    while (fprimImplantT<fsimparms.BeamTime+fsimparms.tsoffset){
-        doSingle();
+    if (fsimparms.isTdiffFromFile==1){//if tdiff is from file
+        bookTDiffData();
+        while (ientrytdiff<fsimparms.nTdiffEntries+fsimparms.iTdiffEntryBegin){
+            doSingle();
+        }
+    }else{//normal mode
+        while (fprimImplantT<fsimparms.BeamTime+fsimparms.tsoffset){
+            doSingle();
+        }
     }
     cout<<fprimImplantEvt<<endl;
     cout<<fbetaEvt<<endl;
@@ -745,10 +780,10 @@ void simulation::fillTreeData()
 void simulation::correlateData()
 {
     //! setup histograms
-    fsim_hdecay=new TH1F("hdecay","hdecay",2000,fionbetawindowlow,fionbetawindowup);
-    fsim_hdecay1nbwd=new TH1F("hdecay1nbwd","hdecay1nbwd",2000,fionbetawindowlow,fionbetawindowup);
-    fsim_hdecaygt0nbwd=new TH1F("hdecaygt0nbwd","hdecaygt0nbwd",2000,fionbetawindowlow,fionbetawindowup);
-    fsim_hdecay2nbwd=new TH1F("hdecay2nbwd","decay2nbwd",2000,fionbetawindowlow,fionbetawindowup);
+    fsim_hdecay=new TH1F("hdecay","hdecay",2000,-fionbetawindowlow,fionbetawindowup);
+    fsim_hdecay1nbwd=new TH1F("hdecay1nbwd","hdecay1nbwd",2000,-fionbetawindowlow,fionbetawindowup);
+    fsim_hdecaygt0nbwd=new TH1F("hdecaygt0nbwd","hdecaygt0nbwd",2000,-fionbetawindowlow,fionbetawindowup);
+    fsim_hdecay2nbwd=new TH1F("hdecay2nbwd","decay2nbwd",2000,-fionbetawindowlow,fionbetawindowup);
 
 
     Int_t k=0;
@@ -822,6 +857,9 @@ void simulation::correlateData()
                 fmlh_t=ts-corrts;
                 fmlh_mult=fcorrNeutronData_fw.mult;
                 ftreemlh->Fill();
+                fmlhbw_t=fmlh_t;
+                fmlhbw_mult=fcorrNeutronData_bw.mult;
+                ftreemlhbw->Fill();
                 fsim_hdecay->Fill(fmlh_t);
                 if (fcorrNeutronData_bw.mult==1) fsim_hdecay1nbwd->Fill(fmlh_t);
                 if (fcorrNeutronData_bw.mult>0) fsim_hdecaygt0nbwd->Fill(fmlh_t);

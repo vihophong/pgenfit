@@ -78,6 +78,9 @@ typedef struct{
     Double_t neuwbeamperctg=40.;
 
 
+    Int_t isTdiffFromFile = 0;
+    Int_t nTdiffEntries = 20000;
+    Int_t iTdiffEntryBegin = 110000;
     Int_t isFixImplantPosition = 0;
     Int_t isSpatialDistFromHist = 0;
 
@@ -126,11 +129,14 @@ class simulation
 
     void correlateData();
 
+    void bookTDiffData();
+
     TTree* getIonSimulationTree(){return ftreeion;}
     TTree* getBetaSimulationTree(){return ftreebeta;}
     TTree* getNeutronSimulationTree(){return ftreeneu;}
 
     TTree* getMLHTree(){return ftreemlh;}
+    TTree* getMLHTreeBackward(){return ftreemlhbw;}
     void writeMLHHistos(){
         fsim_hdecay->Write();
         fsim_hdecay1nbwd->Write();
@@ -202,8 +208,11 @@ class simulation
     simulationdatatypemult fcorrNeutronData_bw;
     TTree* ftreecorr;
     TTree* ftreemlh;
+    TTree* ftreemlhbw;
     Double_t fmlh_t;
     Int_t fmlh_mult;
+    Double_t fmlhbw_t;
+    Int_t fmlhbw_mult;
     TH1F* fsim_hdecay;
     TH1F* fsim_hdecay1nbwd;
     TH1F* fsim_hdecaygt0nbwd;
@@ -215,8 +224,6 @@ class simulation
     Double_t fionbetawindowup;
     Double_t fwindowbetaneutronlow;
     Double_t fwindowbetaneutronup;
-
-
 
     std::multimap < double, simulationdatatype > ionMap;
     std::multimap < double, simulationdatatype >::iterator ionMap_it;
@@ -251,6 +258,11 @@ class simulation
 
     Double_t fximp;
     Double_t fyimp;
+
+    Double_t ftdiff;
+    TTree* ftreetdiff;
+    Long64_t ientrytdiff;
+
 
 };
 

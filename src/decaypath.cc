@@ -303,6 +303,9 @@ void decaypath::makePath()
                 objisomer->population_ratio = -objisomer->population_ratio;
                 obj->is_population_ratio_fix = 0;
                 objisomer->is_population_ratio_fix = 0;
+#ifdef ISOMER_SUM_UNITY
+                objisomer->is_population_ratio_fix = 1;
+#endif
             }
 
             obj->population_ratio = 1 - objisomer->population_ratio;
@@ -310,7 +313,7 @@ void decaypath::makePath()
             obj->population_ratioup = 1 - objisomer->population_ratiolow;
             obj->population_ratiolow = 1 - objisomer->population_ratioup;
 
-            obj->gspatner = obj->id;
+            objisomer->gspatner = obj->id;
             flagisomer = true;
         }
 
@@ -423,6 +426,22 @@ void decaypath::writePath()
             pathfile<<fdecaypath->decaymap[i][j]<<"\t"<<fdecaypath->nneu[i][j]<<std::endl;
         }
     }
+    //! stuffs for isomers
+    Int_t nisomers=0;
+    for (flistofdecaymember_it = flistofdecaymember.begin(); flistofdecaymember_it != flistofdecaymember.end(); flistofdecaymember_it++)
+    {
+        if ((*flistofdecaymember_it)->gspatner!=-1){
+            nisomers++;
+        }
+    }
+    pathfile<<nisomers<<std::endl;
+    for (flistofdecaymember_it = flistofdecaymember.begin(); flistofdecaymember_it != flistofdecaymember.end(); flistofdecaymember_it++)
+    {
+        if ((*flistofdecaymember_it)->gspatner!=-1){
+            pathfile<<(*flistofdecaymember_it)->gspatner<<" "<<(*flistofdecaymember_it)->id<<std::endl;
+        }
+    }
+
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......

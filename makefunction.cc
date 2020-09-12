@@ -15,7 +15,7 @@
 
 int main(int argc, char *argv[])
 {
-    if (argc==2) {
+    if (argc==2){
         unbinfit* fit=new unbinfit;
         //keep default start time (0.08s)
         char inputRootFile[1000];

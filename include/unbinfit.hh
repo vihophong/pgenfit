@@ -91,6 +91,7 @@ class unbinfit
     void prepareMonteCarloData(int nevents);
     void doFit();
 
+    void calculateUpperLimit();//calculate upper limit
     void plotResults();
     void plotResultsMore(Int_t opt=0);
     void writeResults();
@@ -174,6 +175,7 @@ class unbinfit
 
     //! data sets
     TTree* tree;
+    TTree* treeb;
     RooDataSet* databkg; //background data
     RooDataSet* data;
 
@@ -282,6 +284,19 @@ class unbinfit
     Double_t nsig_hB_firstbin;
     Double_t binfitparms[kmaxparms];
     Double_t binfitbkgparms[6];
+
+    //! stuffs for upper limits calculations
+    Double_t N0b;
+    Double_t N0b1n;
+    Double_t N0b2n;
+    Double_t N0b3n;
+
+    Double_t N0b1n_bkg;
+    Double_t N0b2n_bkg;
+    Double_t N0b3n_bkg;
+
+
+    Double_t binw;
 
     struct GlobalChi2 {
        GlobalChi2(  ROOT::Math::IMultiGenFunction & f1,

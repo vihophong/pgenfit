@@ -30,13 +30,16 @@ int main(int argc, char *argv[])
         TTree* treeneutron=sim->getNeutronSimulationTree();
         TTree* treecorr=sim->getCorrelationTree();
         TTree* treemlh=sim->getMLHTree();
+        TTree* treemlhbw=sim->getMLHTreeBackward();
         sim->fillTreeData();
         sim->correlateData();
+        fout->cd();
         treeion->Write();
         treebeta->Write();
         treeneutron->Write();
         treecorr->Write();
         treemlh->Write();
+        treemlhbw->Write();
         sim->writeMLHHistos();
         fout->Close();
     }else{

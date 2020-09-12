@@ -15,8 +15,11 @@ Double_t fitF::fcndecay(Double_t *x, Double_t *par) const
     Double_t* p1n=&par[fpath->nri];
     Double_t* p2n=&par[fpath->nri2];
     Double_t* py=&par[fpath->nri3];
+#ifdef ISOMER_SUM_UNITY
+    // isomer
+    for (Int_t i=0;i<fpath->nisomers;i++) py[fpath->isomer_ex_index[i]]=1-py[fpath->isomer_gs_index[i]];
+#endif
     Double_t N0=par[fpath->nri5]/l[0];
-
     Double_t be=par[fpath->nri5+4];//factor of parent's beta efficiency, relative to daugters
 
     Double_t fparent=0;
@@ -34,6 +37,10 @@ Double_t fitF::fcndecay1n(Double_t *x, Double_t *par) const
     Double_t* p1n=&par[fpath->nri];
     Double_t* p2n=&par[fpath->nri2];
     Double_t* py=&par[fpath->nri3];
+#ifdef ISOMER_SUM_UNITY
+    // isomer
+    for (Int_t i=0;i<fpath->nisomers;i++) py[fpath->isomer_ex_index[i]]=1-py[fpath->isomer_gs_index[i]];
+#endif
     Double_t* ne=&par[fpath->nri4];
     Double_t N0=par[fpath->nri5]/l[0];
 
@@ -60,6 +67,10 @@ Double_t fitF::fcndecay2n(Double_t *x, Double_t *par) const
     Double_t* p1n=&par[fpath->nri];
     Double_t* p2n=&par[fpath->nri2];
     Double_t* py=&par[fpath->nri3];
+#ifdef ISOMER_SUM_UNITY
+    // isomer
+    for (Int_t i=0;i<fpath->nisomers;i++) py[fpath->isomer_ex_index[i]]=1-py[fpath->isomer_gs_index[i]];
+#endif
     Double_t* ne=&par[fpath->nri4];
     Double_t N0=par[fpath->nri5]/l[0];
 
@@ -159,6 +170,10 @@ Double_t fitF::fcndecay_parent(Double_t *x, Double_t *par) const
     Double_t* p1n=&par[fpath->nri];
     Double_t* p2n=&par[fpath->nri2];
     Double_t* py=&par[fpath->nri3];
+#ifdef ISOMER_SUM_UNITY
+    // isomer
+    for (Int_t i=0;i<fpath->nisomers;i++) py[fpath->isomer_ex_index[i]]=1-py[fpath->isomer_gs_index[i]];
+#endif
     Double_t N0=par[fpath->nri5]/l[0];
 
     Double_t be=par[fpath->nri5+4];//factor of parent's beta efficiency, relative to daugters
@@ -179,6 +194,10 @@ Double_t fitF::fcndecay1n_parent(Double_t *x, Double_t *par) const
     Double_t* p1n=&par[fpath->nri];
     Double_t* p2n=&par[fpath->nri2];
     Double_t* py=&par[fpath->nri3];
+#ifdef ISOMER_SUM_UNITY
+    // isomer
+    for (Int_t i=0;i<fpath->nisomers;i++) py[fpath->isomer_ex_index[i]]=1-py[fpath->isomer_gs_index[i]];
+#endif
     Double_t* ne=&par[fpath->nri4];
     Double_t N0=par[fpath->nri5]/l[0];
 
@@ -205,6 +224,10 @@ Double_t fitF::fcndecay2n_parent(Double_t *x, Double_t *par) const
     Double_t* p1n=&par[fpath->nri];
     Double_t* p2n=&par[fpath->nri2];
     Double_t* py=&par[fpath->nri3];
+#ifdef ISOMER_SUM_UNITY
+    // isomer
+    for (Int_t i=0;i<fpath->nisomers;i++) py[fpath->isomer_ex_index[i]]=1-py[fpath->isomer_gs_index[i]];
+#endif
     Double_t* ne=&par[fpath->nri4];
     Double_t N0=par[fpath->nri5]/l[0];
 
@@ -233,6 +256,10 @@ Double_t fitF::fcndecay1n_c1(Double_t *x, Double_t *par) const
     Double_t* p1n=&par[fpath->nri];
     Double_t* p2n=&par[fpath->nri2];
     Double_t* py=&par[fpath->nri3];
+#ifdef ISOMER_SUM_UNITY
+    // isomer
+    for (Int_t i=0;i<fpath->nisomers;i++) py[fpath->isomer_ex_index[i]]=1-py[fpath->isomer_gs_index[i]];
+#endif
     Double_t* ne=&par[fpath->nri4];
     Double_t N0=par[fpath->nri5]/l[0];
 
@@ -270,6 +297,10 @@ Double_t fitF::fcndecay1n_c2(Double_t *x, Double_t *par) const
     Double_t* p1n=&par[fpath->nri];
     Double_t* p2n=&par[fpath->nri2];
     Double_t* py=&par[fpath->nri3];
+#ifdef ISOMER_SUM_UNITY
+    // isomer
+    for (Int_t i=0;i<fpath->nisomers;i++) py[fpath->isomer_ex_index[i]]=1-py[fpath->isomer_gs_index[i]];
+#endif
     Double_t* ne=&par[fpath->nri4];
     Double_t N0=par[fpath->nri5]/l[0];
 
@@ -305,6 +336,10 @@ Double_t fitF::fcndecay1n_c3(Double_t *x, Double_t *par) const
     Double_t* p1n=&par[fpath->nri];
     Double_t* p2n=&par[fpath->nri2];
     Double_t* py=&par[fpath->nri3];
+#ifdef ISOMER_SUM_UNITY
+    // isomer
+    for (Int_t i=0;i<fpath->nisomers;i++) py[fpath->isomer_ex_index[i]]=1-py[fpath->isomer_gs_index[i]];
+#endif
     Double_t* ne=&par[fpath->nri4];
     Double_t N0=par[fpath->nri5]/l[0];
 
@@ -340,6 +375,10 @@ Double_t fitF::fcndecay1n_c23(Double_t *x, Double_t *par) const
     Double_t* p1n=&par[fpath->nri];
     Double_t* p2n=&par[fpath->nri2];
     Double_t* py=&par[fpath->nri3];
+#ifdef ISOMER_SUM_UNITY
+    // isomer
+    for (Int_t i=0;i<fpath->nisomers;i++) py[fpath->isomer_ex_index[i]]=1-py[fpath->isomer_gs_index[i]];
+#endif
     Double_t* ne=&par[fpath->nri4];
     Double_t N0=par[fpath->nri5]/l[0];
 
@@ -377,6 +416,10 @@ Double_t fitF::fcndecay2n_c1(Double_t *x, Double_t *par) const
     Double_t* p1n=&par[fpath->nri];
     Double_t* p2n=&par[fpath->nri2];
     Double_t* py=&par[fpath->nri3];
+#ifdef ISOMER_SUM_UNITY
+    // isomer
+    for (Int_t i=0;i<fpath->nisomers;i++) py[fpath->isomer_ex_index[i]]=1-py[fpath->isomer_gs_index[i]];
+#endif
     Double_t* ne=&par[fpath->nri4];
     Double_t N0=par[fpath->nri5]/l[0];
 
@@ -414,6 +457,10 @@ Double_t fitF::fcndecay2n_c2(Double_t *x, Double_t *par) const
     Double_t* p1n=&par[fpath->nri];
     Double_t* p2n=&par[fpath->nri2];
     Double_t* py=&par[fpath->nri3];
+#ifdef ISOMER_SUM_UNITY
+    // isomer
+    for (Int_t i=0;i<fpath->nisomers;i++) py[fpath->isomer_ex_index[i]]=1-py[fpath->isomer_gs_index[i]];
+#endif
     Double_t* ne=&par[fpath->nri4];
     Double_t N0=par[fpath->nri5]/l[0];
 
@@ -452,6 +499,10 @@ Double_t fitF::fcndecay2n_c3(Double_t *x, Double_t *par) const
     Double_t* p1n=&par[fpath->nri];
     Double_t* p2n=&par[fpath->nri2];
     Double_t* py=&par[fpath->nri3];
+#ifdef ISOMER_SUM_UNITY
+    // isomer
+    for (Int_t i=0;i<fpath->nisomers;i++) py[fpath->isomer_ex_index[i]]=1-py[fpath->isomer_gs_index[i]];
+#endif
     Double_t* ne=&par[fpath->nri4];
     Double_t N0=par[fpath->nri5]/l[0];
 
@@ -487,6 +538,10 @@ Double_t fitF::fcndecay2n_c4(Double_t *x, Double_t *par) const
     Double_t* p1n=&par[fpath->nri];
     Double_t* p2n=&par[fpath->nri2];
     Double_t* py=&par[fpath->nri3];
+#ifdef ISOMER_SUM_UNITY
+    // isomer
+    for (Int_t i=0;i<fpath->nisomers;i++) py[fpath->isomer_ex_index[i]]=1-py[fpath->isomer_gs_index[i]];
+#endif
     Double_t* ne=&par[fpath->nri4];
     Double_t N0=par[fpath->nri5]/l[0];
 
@@ -525,6 +580,10 @@ Double_t fitF::fcndecay2n_c134(Double_t *x, Double_t *par) const
     Double_t* p1n=&par[fpath->nri];
     Double_t* p2n=&par[fpath->nri2];
     Double_t* py=&par[fpath->nri3];
+#ifdef ISOMER_SUM_UNITY
+    // isomer
+    for (Int_t i=0;i<fpath->nisomers;i++) py[fpath->isomer_ex_index[i]]=1-py[fpath->isomer_gs_index[i]];
+#endif
     Double_t* ne=&par[fpath->nri4];
     Double_t N0=par[fpath->nri5]/l[0];
 

@@ -41,7 +41,6 @@ int main(int argc, char *argv[])
             ofs<<argv[i]<<"\t";
         }
         ofs<<std::endl;
-
         fit->RunBinFit();
     }else if(argc==8){
         unbinfit* fit=new unbinfit;

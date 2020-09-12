@@ -35,7 +35,7 @@ unbinfit::unbinfit()
     nbinsHSB=200;
     nbinsHSB2=200;
 
-    ncpu=16;
+    ncpu=NCPUS_UNBINFIT;
 
     finputData=new char[1000];
     finputParms=new char[1000];
@@ -47,7 +47,7 @@ unbinfit::unbinfit()
     fFitTime=0;
 
     //rseed=new TRandom3;
-    rseed=new TRandom3(0);
+    rseed=new TRandom3();
     fnMC=0;
 
     for (int i=0;i<kmaxparms;i++)ipVal[i]=i;
@@ -59,7 +59,6 @@ unbinfit::unbinfit()
 
     plotrangelow=-0.5;
     plotrangehi=3;
-
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -95,6 +94,7 @@ void unbinfit::Init(char* inputParms, char* inputData)
     // Import tree to total decay data
     TFile *f=TFile::Open(finputData);
     f->GetObject("tree",tree);
+    f->GetObject("treebw",treeb);
     if (fnentrieslimit>0) tree->SetEntries(fnentrieslimit);
 
     //!*****************************************
@@ -142,6 +142,11 @@ void unbinfit::fitBackground(Int_t opt)
     RooRealVar slope1("slope1","slope1",0.,-0.1,0.1) ;
     RooRealVar slope2("slope2","slope2",0.,-0.1,0.1) ;
     RooRealVar slope3("slope3","slope3",0.,-0.1,0.1) ;
+    #ifdef FLAT_BACKGROUNDS
+    slope1.setConstant();
+    slope2.setConstant();
+    slope3.setConstant();
+    #endif
 
     // bkg pdf
     bkgmodelneg= new fitFbkg("bkgmodel","bkgmodel",*xbkg,*y,*bkg1nratio,*bkg2nratio,slope1,slope2,slope3);
@@ -152,16 +157,10 @@ void unbinfit::fitBackground(Int_t opt)
     //! Prepare positive background function
     //! *****************************************
     // set positive background parms
-#ifdef FLAT_BACKGROUNDS
-    slope1pos=new RooRealVar("slope1pos","slope1pos",0,-0.1,0.1) ;
-    slope2pos=new RooRealVar("slope2pos","slope2pos",0,-0.1,0.1) ;
-    slope3pos=new RooRealVar("slope3pos","slope3pos",0,-0.1,0.1) ;
-#else
+
     slope1pos=new RooRealVar("slope1pos","slope1pos",-slope1.getVal(),-0.1,0.1) ;
     slope2pos=new RooRealVar("slope2pos","slope2pos",-slope2.getVal(),-0.1,0.1) ;
     slope3pos=new RooRealVar("slope3pos","slope3pos",-slope3.getVal(),-0.1,0.1) ;
-#endif
-
 
     slope1pos->setError(slope1.getError());
     slope2pos->setError(slope2.getError());
@@ -175,6 +174,11 @@ void unbinfit::fitBackground(Int_t opt)
     fB_bkgneg=new TF1("fB_bkgneg","pol1",-p_timerange,0);
     fSB_bkgneg=new TF1("fSB_bkgneg","pol1",-p_timerange,0);
     fSB2_bkgneg=new TF1("fSB2_bkgneg","pol1",-p_timerange,0);
+    #ifdef FLAT_BACKGROUNDS
+    fB_bkgneg->FixParameter(1,0.);
+    fSB_bkgneg->FixParameter(1,0.);
+    fSB2_bkgneg->FixParameter(1,0.);
+    #endif
     //fB_bkgneg->FixParameter(1,slope3.getVal());
     //fSB_bkgneg->FixParameter(1,slope1.getVal());
     //fSB2_bkgneg->FixParameter(1,slope2.getVal());
@@ -670,6 +674,7 @@ void unbinfit::plotResults()
     c1->cd(1);
     RooPlot* xframe0 = x->frame(Title("all fit")) ;
     data->plotOn(xframe0,Binning(nbinsHB/2),RooFit::Name("data0n")) ;
+    binw=(p_timerange-p_deadtime)/nbinsHB*2;
     final_pdf->plotOn(xframe0,RooFit::Name("data0nmodel")) ;
     //bkgmodelpos->plotOn(xframe0,RooFit::Name("bkg0nposmodel")) ;
     xframe0->Draw() ;
@@ -757,12 +762,18 @@ void unbinfit::plotResults()
     totdecaymodelforplot=new fitF("totdecaymodelforplot","totdecaymodelforplot",*x,*y,p);
     totdecaymodelforplot->initPath();
     fB=new TF1("fB",totdecaymodelforplot,&fitF::fcndecay,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay");
+    //! set fix parameters
+    nsig_hB_firstbin=model0nCurve->Eval(p_deadtime)-fB_bkgpos->Eval(p_deadtime);
     for (int i=0;i<fdecaypath->getNMember()*5+8;i++){
-        fB->FixParameter(i,pvar[i]->getVal());
+        if (i!=fdecaypath->getNMember()*5) {
+            fB->FixParameter(i,pvar[i]->getVal());
+        }else{
+            fB->SetParameter(i,nsig_hB_firstbin);
+            fB->SetParLimits(i,nsig_hB_firstbin/10,nsig_hB_firstbin*10);
+        }
     }
     fB->FixParameter(fdecaypath->getNMember()*5+8,b0);
     fB->FixParameter(fdecaypath->getNMember()*5+9,a0);
-
 
     fSB=new TF1("fSB",totdecaymodelforplot,&fitF::fcndecay1n,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay1n");
     for (int i=0;i<fdecaypath->getNMember()*5+8;i++){
@@ -778,11 +789,11 @@ void unbinfit::plotResults()
     fSB2->FixParameter(fdecaypath->getNMember()*5+8,b2);
     fSB2->FixParameter(fdecaypath->getNMember()*5+9,a2);
 
-    //! set fix parameters
-    nsig_hB_firstbin=model0nCurve->Eval(p_deadtime)-fB_bkgpos->Eval(p_deadtime);
-    fB->FixParameter(fdecaypath->getNMember()*5,nsig_hB_firstbin);
-    fSB->FixParameter(fdecaypath->getNMember()*5,nsig_hB_firstbin);
-    fSB2->FixParameter(fdecaypath->getNMember()*5,nsig_hB_firstbin);
+
+    model0nCurve->Fit(fB,"LEQR","goff");
+    //fB->FixParameter(fdecaypath->getNMember()*5,nsig_hB_firstbin);
+    fSB->FixParameter(fdecaypath->getNMember()*5,fB->GetParameter(fdecaypath->getNMember()*5));
+    fSB2->FixParameter(fdecaypath->getNMember()*5,fB->GetParameter(fdecaypath->getNMember()*5));
 
     //! construct parent/daugters decay components for plotting demonstration
     fB_parent=new TF1("fB_parent",totdecaymodelforplot,&fitF::fcndecay_parent,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay_parent");
@@ -866,6 +877,8 @@ void unbinfit::RunBinFit()
 
    //! set fix parameters
    fB->FixParameter(fdecaypath->getNMember()*5,nsig_hB_firstbin);
+   fSB->FixParameter(fdecaypath->getNMember()*5,nsig_hB_firstbin);
+   fSB2->FixParameter(fdecaypath->getNMember()*5,nsig_hB_firstbin);
    cout<<"Eval fB = "<<fB->Eval(p_timerange/2+p_deadtime/2)<<endl;
    cout<<"Eval fSB = "<<fSB->Eval(p_timerange/2+p_deadtime/2)<<endl;
    cout<<"Eval fSB2 = "<<fSB2->Eval(p_timerange/2+p_deadtime/2)<<endl;
@@ -964,6 +977,7 @@ void unbinfit::RunBinFit()
    fSB2_c4=new TF1("fSB2_c4",totdecaymodel,&fitF::fcndecay2n_c4,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay2n_c4");
    fSB2_c134=new TF1("fSB2_c134",totdecaymodel,&fitF::fcndecay2n_c134,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay2n_c134");
    writeFitComponents();
+   binw=hB->GetXaxis()->GetBinWidth(1);
    hB->Write();
    hSB->Write();
    hSB2->Write();
@@ -1069,16 +1083,50 @@ void unbinfit::writeFitComponents()
     fSB2_c4->Write();
     fSB2_c134->Write();
 }
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
+void unbinfit::calculateUpperLimit()
+{
+    //! write P1n,P2n and P3n upper limit
+    char tempstr[500];
+    sprintf(tempstr,"%s.txt",foutputData);
+    std::ofstream ofs(tempstr,std::ios::app);
+
+    N0b=fB_parent->Eval(p_deadtime)/fB->GetParameter(0)/binw-fB_parent->Eval(p_timerange)/fB->GetParameter(0)/binw;
+
+    N0b1n=tree->Draw("",Form("x>%f&&x<%f&&y==1",p_deadtime,p_timerange),"goff")-
+            tree->Draw("",Form("x>%f&&x<%f&&y==1",-p_timerange,-p_deadtime),"goff")-
+            treeb->Draw("",Form("x>%f&&x<%f&&y==1",p_deadtime,p_timerange),"goff")+
+            treeb->Draw("",Form("x>%f&&x<%f&&y==1",-p_timerange,-p_deadtime),"goff");
+    N0b1n_bkg=tree->Draw("",Form("x>%f&&x<%f&&y==1",-p_timerange,-p_deadtime),"goff")+
+            treeb->Draw("",Form("x>%f&&x<%f&&y==1",p_deadtime,p_timerange),"goff")-
+            treeb->Draw("",Form("x>%f&&x<%f&&y==1",-p_timerange,-p_deadtime),"goff");
+    N0b2n=tree->Draw("",Form("x>%f&&x<%f&&y==2",p_deadtime,p_timerange),"goff")-
+            tree->Draw("",Form("x>%f&&x<%f&&y==2",-p_timerange,-p_deadtime),"goff")-
+            treeb->Draw("",Form("x>%f&&x<%f&&y==2",p_deadtime,p_timerange),"goff")+
+            treeb->Draw("",Form("x>%f&&x<%f&&y==2",-p_timerange,-p_deadtime),"goff");
+    N0b2n_bkg=tree->Draw("",Form("x>%f&&x<%f&&y==2",-p_timerange,-p_deadtime),"goff")+
+            treeb->Draw("",Form("x>%f&&x<%f&&y==2",p_deadtime,p_timerange),"goff")-
+            treeb->Draw("",Form("x>%f&&x<%f&&y==2",-p_timerange,-p_deadtime),"goff");
+    N0b3n=tree->Draw("",Form("x>%f&&x<%f&&y==3",p_deadtime,p_timerange),"goff")-
+            tree->Draw("",Form("x>%f&&x<%f&&y==3",-p_timerange,-p_deadtime),"goff")-
+            treeb->Draw("",Form("x>%f&&x<%f&&y==3",p_deadtime,p_timerange),"goff")+
+            treeb->Draw("",Form("x>%f&&x<%f&&y==3",-p_timerange,-p_deadtime),"goff");
+    N0b3n_bkg=tree->Draw("",Form("x>%f&&x<%f&&y==3",-p_timerange,-p_deadtime),"goff")+
+            treeb->Draw("",Form("x>%f&&x<%f&&y==3",p_deadtime,p_timerange),"goff")-
+            treeb->Draw("",Form("x>%f&&x<%f&&y==3",-p_timerange,-p_deadtime),"goff");
+
+    ofs<<N0b<<"\t"<<N0b1n<<"\t"<<N0b2n<<"\t"<<N0b3n<<"\t"<<N0b1n_bkg<<"\t"<<N0b2n_bkg<<"\t"<<N0b3n_bkg<<endl;
+}
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 void unbinfit::plotResultsMore(Int_t opt)
 {
+    calculateUpperLimit();
     gStyle->SetOptStat(0);
-
     /**
         canvas 0n
     */
-
     TCanvas* c0n=new TCanvas("c0n","c0n",1200,800);
     TPad *pad1_c0n = new TPad("pad1_c0n","pad1_c0n",0,0.3,1,1);
     TPad *pad2_c0n = new TPad("pad2_c0n","pad2_c0n",0,0,1,0.3);
@@ -1137,6 +1185,8 @@ void unbinfit::plotResultsMore(Int_t opt)
     fB_bkgneg->SetLineColor(4);
     fB_bkgneg->Draw("same");
     pad1_c0n->Draw();
+
+
 
 
 

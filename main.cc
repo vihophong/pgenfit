@@ -56,5 +56,7 @@ int main(int argc, char *argv[])
         std::cout<<"check inputs!"<<std::endl;
         return 0;
     }
+
+    std::cout<<"Fitting done, output file at "<<argv[1]<<std::endl;
     return 0;
 }

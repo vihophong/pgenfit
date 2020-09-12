@@ -1,3 +1,9 @@
+#If we use time data of implantation from file, set it to 1
+istdifffromfile 0
+#If we use time data of implantation from file, set number of entries here
+ntdiffentries 20000
+#If we use time data of implantation from file, set the entry index to begin with here
+itdiffentrybegin 110000
 #If we fix implantation position to a fix mean value, set it to 1
 isfiximppos 0
 #If we choose beta background from histogram (hx.root and hy.root)

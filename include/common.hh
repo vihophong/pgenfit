@@ -20,6 +20,8 @@
 #include <vector>
 #include <list>
 
+#define NCPUS_UNBINFIT 16
+
 #define EVAL_FAST
 #define PATHFLOW
 //set if you wish parent neutron efficiency to be distributed from 40 to 68%
@@ -28,8 +30,11 @@
 #define ENTRYLIMIT -5000 //set negative for not limiting the entries by default
 #define STARTFIT 0.08
 
+// set if production rate of isiomeric state equal 1
+#define ISOMER_SUM_UNITY
+
 // set if flat backgrounds is used
-//#define FLAT_BACKGROUNDS
+#define FLAT_BACKGROUNDS
 
 //#define DEBUG
 
@@ -99,6 +104,8 @@ typedef struct {
     std::vector< std::vector<Int_t> > path;
     std::vector< std::vector<Int_t> > nneupath;
 
+
+
     // stuffs for simulation
     Int_t sim_neumult;
     Double_t sim_T;
@@ -120,6 +127,11 @@ typedef struct path_str
     Int_t nri4;
     Int_t nri3;
     Int_t nri2;
+
+    //! stuffs for isomer
+    Int_t nisomers;
+    Int_t isomer_gs_index[10];
+    Int_t isomer_ex_index[10];
 } path;
 
 

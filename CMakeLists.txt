@@ -64,6 +64,7 @@ set(PROJ_DATA
   parmsex.txt
   effparmsex.txt
   testdata.root
+  tdiffdataex.root
   FRDM-QRPA12-halflife.txt
   stable.csv
   anasim.C
