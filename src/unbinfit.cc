@@ -46,8 +46,8 @@ unbinfit::unbinfit()
     fMCGenTime=0;
     fFitTime=0;
 
-    //rseed=new TRandom3;
-    rseed=new TRandom3();
+    //rseed=new TRandom3();
+    rseed=new TRandom3(0);
     fnMC=0;
 
     for (int i=0;i<kmaxparms;i++)ipVal[i]=i;
