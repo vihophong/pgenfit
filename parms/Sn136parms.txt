@@ -1,0 +1,14 @@
+# Note should start from #, non-zero upper value indicate varying variable, half-life is in second
+# RI should be in the sequences of increasing Z and decreasing A for each isotropic row
+#Name	Z	A	Half-life	Abs Error Half-life	lowerHL	upperHL	P1n	Abs Error P1n	lowerP1n	upperP1n	P2n	Abs Error P2n	lowerP2n	upperP2n	isomer ratio	isomer ratio err	lower isomer ratio	upper isomer ratio	Half-life	Abs Error Half-life	lowerHL	upperHL	P1n	Abs Error P1n	lowerP1n	upperP1n	P2n	Abs Error P2n	lowerP2n	upperP2n    Neu.Eff	Neu.Eff Err	lowerNeu.Eff	upperNeu.Eff
+^{136}Sn	50	136	-0.345	0.015	0.069	1.725	-27	4	0	200	-25	0	0	200	0.643324	0.0678383	0	1
+^{136}Sb	51	136	0.923	0.014	0.1846	4.615	16.3	3.2	0	200	0.5	0	0	200	0.643324	0.0678383	0	1
+^{135}Sb	51	135	1.668	0.01	0.3336	8.34	22.8	1.8	0	200	0	0	0	200	0.643324	0.0678383	0	1
+^{134}Sb	51	134	0.78	0.07	0.156	3.9	0	0	0	200	0	0	0	200	0.643324	0.0678383	0	1
+^{136}Te	52	136	17.67	0.09	3.534	88.35	1.31	0.05	0	200	0	0	0	200	0.643324	0.0678383	0	1
+^{135}Te	52	135	19	0.2	3.8	95	0	0	0	200	0	0	0	200	0.643324	0.0678383	0	1
+^{134}Te	52	134	2508	48	501.6	12540	0	0	0	200	0	0	0	200	0.643324	0.0678383	0	1
+^{136}I	53	136	83.4	1	16.68	417	0	0	0	200	0	0	0	200	0.643324	0.0678383	0	1
+^{135}I	53	135	23688	108	4737.6	118440	0	0	0	200	0	0	0	200	0.643324	0.0678383	0	1
+^{134}I	53	134	3150	12	630	15750	0	0	0	200	0	0	0	200	0.643324	0.0678383	0	1
+^{135}Xe	54	135	32904	72	6580.8	164520	0	0	0	200	0	0	0	200	0.643324	0.0678383	0	1

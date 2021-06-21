@@ -217,6 +217,7 @@ class unbinfit
     Int_t fitNumInvalidNLL;
     Double_t fitEdm;
     Double_t fitMinNll;
+    Double_t chiSquareNDF;
 
     Double_t nsigVal;
     Double_t nsigCentralVal;

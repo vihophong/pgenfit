@@ -132,7 +132,7 @@ void fitF::calculateDecay(Double_t &fdecayall, Double_t &fparent, Double_t* fdau
 Double_t fitF::calculateDecay1n(Double_t fparent, Double_t* fdaugters, Double_t *p1n,Double_t *p2n,Double_t *ne,Double_t randcoinf1n,Double_t randcoinfgt0n,Double_t be,Double_t b1ne,Double_t b2ne,Double_t n1n2ne) const
 {
     //! fdecay1n
-    Double_t fdecay1n=fparent*(be*randcoinf1n+b1ne*ne[0]*p1n[0]*(1-randcoinf1n-randcoinfgt0n)+b2ne*2*(ne[0]*n1n2ne*(1-ne[0]*n1n2ne))*p2n[0]*(1-randcoinf1n-randcoinfgt0n)-b2ne*ne[0]*n1n2ne*ne[0]*n1n2ne*p2n[0]*randcoinf1n);
+    Double_t fdecay1n=fparent*(be*randcoinf1n+b1ne*ne[0]*p1n[0]*(1-randcoinf1n-randcoinfgt0n)+b2ne*2*(n1n2ne*(1-n1n2ne))*p2n[0]*(1-randcoinf1n-randcoinfgt0n)-b2ne*n1n2ne*n1n2ne*p2n[0]*randcoinf1n);
     for (Int_t i=0;i<fpath->npaths;i++){
 #ifdef PATHFLOW
         if (fpath->ispathhasflow[i]){
@@ -147,7 +147,7 @@ Double_t fitF::calculateDecay1n(Double_t fparent, Double_t* fdaugters, Double_t 
 Double_t fitF::calculateDecay2n(Double_t fparent, Double_t* fdaugters, Double_t *p1n,Double_t *p2n,Double_t *ne,Double_t randcoinf1n,Double_t randcoinfgt0n,Double_t randcoinf2n,Double_t be,Double_t b1ne,Double_t b2ne,Double_t n1n2ne) const
 {
     //! fdecay2n
-    Double_t fdecay2n=fparent*(b2ne*ne[0]*n1n2ne*ne[0]*n1n2ne*p2n[0]*(1-randcoinf2n-randcoinfgt0n)+randcoinf2n*be+b1ne*ne[0]*p1n[0]*(randcoinf1n*(1-randcoinfgt0n)-randcoinf2n)+b2ne*2*(ne[0]*n1n2ne*(1-ne[0]*n1n2ne))*p2n[0]*(randcoinf1n*(1-randcoinfgt0n)-randcoinf2n));
+    Double_t fdecay2n=fparent*(b2ne*n1n2ne*n1n2ne*p2n[0]*(1-randcoinf2n-randcoinfgt0n)+randcoinf2n*be+b1ne*ne[0]*p1n[0]*(randcoinf1n*(1-randcoinfgt0n)-randcoinf2n)+b2ne*2*(n1n2ne*(1-n1n2ne))*p2n[0]*(randcoinf1n*(1-randcoinfgt0n)-randcoinf2n));
     for (Int_t i=0;i<fpath->npaths;i++){
 #ifdef PATHFLOW
         if (fpath->ispathhasflow[i]){
@@ -213,7 +213,7 @@ Double_t fitF::fcndecay1n_parent(Double_t *x, Double_t *par) const
     Double_t fdaugters[fpath->npaths];
     calculateDecay(fdecayall,fparent, fdaugters, l,e,p1n,p2n,py,N0,be);
     //! fdecay1n
-    return fparent*(be*randcoinf1n+b1ne*ne[0]*p1n[0]*(1-randcoinf1n-randcoinfgt0n)+b2ne*2*(ne[0]*n1n2ne*(1-ne[0]*n1n2ne))*p2n[0]*(1-randcoinf1n-randcoinfgt0n)-b2ne*ne[0]*n1n2ne*ne[0]*n1n2ne*p2n[0]*randcoinf1n);
+    return fparent*(be*randcoinf1n+b1ne*ne[0]*p1n[0]*(1-randcoinf1n-randcoinfgt0n)+b2ne*2*(n1n2ne*(1-n1n2ne))*p2n[0]*(1-randcoinf1n-randcoinfgt0n)-b2ne*n1n2ne*n1n2ne*p2n[0]*randcoinf1n);
 }
 Double_t fitF::fcndecay2n_parent(Double_t *x, Double_t *par) const
 {
@@ -244,7 +244,7 @@ Double_t fitF::fcndecay2n_parent(Double_t *x, Double_t *par) const
     Double_t fdaugters[fpath->npaths];
     calculateDecay(fdecayall,fparent, fdaugters, l,e,p1n,p2n,py,N0,be);
     //! fdecay2n
-    return fparent*(b2ne*ne[0]*n1n2ne*ne[0]*n1n2ne*p2n[0]*(1-randcoinf2n-randcoinfgt0n)+randcoinf2n*be+b1ne*ne[0]*p1n[0]*(randcoinf1n*(1-randcoinfgt0n)-randcoinf2n)+b2ne*2*(ne[0]*n1n2ne*(1-ne[0]*n1n2ne))*p2n[0]*(randcoinf1n*(1-randcoinfgt0n)-randcoinf2n));
+    return fparent*(b2ne*n1n2ne*n1n2ne*p2n[0]*(1-randcoinf2n-randcoinfgt0n)+randcoinf2n*be+b1ne*ne[0]*p1n[0]*(randcoinf1n*(1-randcoinfgt0n)-randcoinf2n)+b2ne*2*(n1n2ne*(1-n1n2ne))*p2n[0]*(randcoinf1n*(1-randcoinfgt0n)-randcoinf2n));
 }
 
 Double_t fitF::fcndecay1n_c1(Double_t *x, Double_t *par) const
@@ -275,7 +275,7 @@ Double_t fitF::fcndecay1n_c1(Double_t *x, Double_t *par) const
     Double_t fdaugters[fpath->npaths];
     calculateDecay(fdecayall,fparent, fdaugters, l,e,p1n,p2n,py,N0,be);
     //! fdecay1n
-    Double_t fdecay1n=fparent*(be*randcoinf1n-b1ne*ne[0]*p1n[0]*randcoinf1n-b2ne*2*(ne[0]*n1n2ne*(1-ne[0]*n1n2ne))*p2n[0]*randcoinf1n-b2ne*ne[0]*n1n2ne*ne[0]*n1n2ne*p2n[0]*randcoinf1n);
+    Double_t fdecay1n=fparent*(be*randcoinf1n-b1ne*ne[0]*p1n[0]*randcoinf1n-b2ne*2*(n1n2ne*(1-n1n2ne))*p2n[0]*randcoinf1n-b2ne*n1n2ne*n1n2ne*p2n[0]*randcoinf1n);
     for (Int_t i=0;i<fpath->npaths;i++){
 #ifdef PATHFLOW
         if (fpath->ispathhasflow[i]){
@@ -354,7 +354,7 @@ Double_t fitF::fcndecay1n_c3(Double_t *x, Double_t *par) const
     Double_t fdaugters[fpath->npaths];
     calculateDecay(fdecayall,fparent, fdaugters, l,e,p1n,p2n,py,N0,be);
     //! fdecay1n
-    Double_t fdecay1n=fparent*b2ne*2*(ne[0]*n1n2ne*(1-ne[0]*n1n2ne))*p2n[0]*(1-randcoinfgt0n);
+    Double_t fdecay1n=fparent*b2ne*2*(n1n2ne*(1-n1n2ne))*p2n[0]*(1-randcoinfgt0n);
     for (Int_t i=0;i<fpath->npaths;i++){
 #ifdef PATHFLOW
         if (fpath->ispathhasflow[i]){
@@ -394,7 +394,7 @@ Double_t fitF::fcndecay1n_c23(Double_t *x, Double_t *par) const
     Double_t fdaugters[fpath->npaths];
     calculateDecay(fdecayall,fparent, fdaugters, l,e,p1n,p2n,py,N0,be);
     //! fdecay1n
-    Double_t fdecay1n=fparent*(b1ne*ne[0]*p1n[0]*(1-randcoinfgt0n)+b2ne*2*(ne[0]*n1n2ne*(1-ne[0]*n1n2ne))*p2n[0]*(1-randcoinfgt0n));
+    Double_t fdecay1n=fparent*(b1ne*ne[0]*p1n[0]*(1-randcoinfgt0n)+b2ne*2*(n1n2ne*(1-n1n2ne))*p2n[0]*(1-randcoinfgt0n));
     for (Int_t i=0;i<fpath->npaths;i++){
 #ifdef PATHFLOW
         if (fpath->ispathhasflow[i]){
@@ -436,7 +436,7 @@ Double_t fitF::fcndecay2n_c1(Double_t *x, Double_t *par) const
     Double_t fdaugters[fpath->npaths];
     calculateDecay(fdecayall,fparent, fdaugters, l,e,p1n,p2n,py,N0,be);
     //! fdecay2n
-    Double_t fdecay2n=fparent*(-b2ne*ne[0]*n1n2ne*ne[0]*n1n2ne*p2n[0]*randcoinf2n+randcoinf2n*be-b1ne*ne[0]*p1n[0]*randcoinf2n-b2ne*2*(ne[0]*n1n2ne*(1-ne[0]*n1n2ne))*p2n[0]*randcoinf2n);
+    Double_t fdecay2n=fparent*(-b2ne*n1n2ne*n1n2ne*p2n[0]*randcoinf2n+randcoinf2n*be-b1ne*ne[0]*p1n[0]*randcoinf2n-b2ne*2*(n1n2ne*(1-n1n2ne))*p2n[0]*randcoinf2n);
     for (Int_t i=0;i<fpath->npaths;i++){
 #ifdef PATHFLOW
         if (fpath->ispathhasflow[i]){
@@ -476,7 +476,7 @@ Double_t fitF::fcndecay2n_c2(Double_t *x, Double_t *par) const
     Double_t fdaugters[fpath->npaths];
     calculateDecay(fdecayall,fparent, fdaugters, l,e,p1n,p2n,py,N0,be);
     //! fdecay2n
-    Double_t fdecay2n=fparent*b2ne*ne[0]*n1n2ne*ne[0]*n1n2ne*p2n[0]*(1-randcoinfgt0n);
+    Double_t fdecay2n=fparent*b2ne*n1n2ne*n1n2ne*p2n[0]*(1-randcoinfgt0n);
     for (Int_t i=0;i<fpath->npaths;i++){
 #ifdef PATHFLOW
         if (fpath->ispathhasflow[i]){
@@ -558,7 +558,7 @@ Double_t fitF::fcndecay2n_c4(Double_t *x, Double_t *par) const
     Double_t fdaugters[fpath->npaths];
     calculateDecay(fdecayall,fparent, fdaugters, l,e,p1n,p2n,py,N0,be);
     //! fdecay2n
-    Double_t fdecay2n=fparent*b2ne*2*(ne[0]*n1n2ne*(1-ne[0]*n1n2ne))*p2n[0]*(randcoinf1n*(1-randcoinfgt0n));
+    Double_t fdecay2n=fparent*b2ne*2*(n1n2ne*(1-n1n2ne))*p2n[0]*(randcoinf1n*(1-randcoinfgt0n));
     for (Int_t i=0;i<fpath->npaths;i++){
 #ifdef PATHFLOW
         if (fpath->ispathhasflow[i]){
@@ -600,7 +600,7 @@ Double_t fitF::fcndecay2n_c134(Double_t *x, Double_t *par) const
     Double_t fdaugters[fpath->npaths];
     calculateDecay(fdecayall,fparent, fdaugters, l,e,p1n,p2n,py,N0,be);
     //! fdecay2n
-    Double_t fdecay2n=fparent*(-b2ne*ne[0]*n1n2ne*ne[0]*n1n2ne*p2n[0]*randcoinf2n+randcoinf2n*be+b1ne*ne[0]*p1n[0]*(randcoinf1n*(1-randcoinfgt0n)-randcoinf2n)+b2ne*2*(ne[0]*n1n2ne*(1-ne[0]*n1n2ne))*p2n[0]*(randcoinf1n*(1-randcoinfgt0n)-randcoinf2n));
+    Double_t fdecay2n=fparent*(-b2ne*n1n2ne*n1n2ne*p2n[0]*randcoinf2n+randcoinf2n*be+b1ne*ne[0]*p1n[0]*(randcoinf1n*(1-randcoinfgt0n)-randcoinf2n)+b2ne*2*(n1n2ne*(1-n1n2ne))*p2n[0]*(randcoinf1n*(1-randcoinfgt0n)-randcoinf2n));
     for (Int_t i=0;i<fpath->npaths;i++){
 #ifdef PATHFLOW
         if (fpath->ispathhasflow[i]){

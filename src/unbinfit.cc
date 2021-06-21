@@ -27,6 +27,7 @@ unbinfit::unbinfit()
 {
     ffitopt=0;// only 0 - fix parameter; 1 - constrain parameters
 
+    chiSquareNDF=0;
     fnentrieslimit=ENTRYLIMIT;
 
     p_deadtime=STARTFIT;
@@ -47,7 +48,7 @@ unbinfit::unbinfit()
     fFitTime=0;
 
     //rseed=new TRandom3();
-    rseed=new TRandom3(0);
+    rseed=new TRandom3();
     fnMC=0;
 
     for (int i=0;i<kmaxparms;i++)ipVal[i]=i;
@@ -250,6 +251,7 @@ void unbinfit::initFitParameters()
     TH1F* hdecay2nbwd=(TH1F*) gDirectory->Get(tempchar1);
 
     // Calculate random coincidence paramters
+
     Double_t n1nbwd=(Double_t) hdecay1nbwd->GetEntries();
     Double_t gt0nbwd=(Double_t) hdecaygt0nbwd->GetEntries();
     Double_t n2nbwd=(Double_t) hdecay2nbwd->GetEntries();
@@ -830,7 +832,8 @@ void unbinfit::writeResults()
         if (!pvar[i]->isConstant())
             ofs<<i<<"\t"<<pvar[i]->getVal()<<"\t"<<pvar[i]->getError()<<std::endl;
     }
-    ofs<<"nsig="<<nsig->getVal()<<"\tnbkg="<<nbkg->getVal()<<std::endl;
+    ofs<<"nsig = "<<nsig->getVal()<<"\tnbkg = "<<nbkg->getVal()<<std::endl;
+    ofs<<"chisquare/NDF = "<<chiSquareNDF<<std::endl;
     fitres->Print();
     std::cout<<"Time for MC generation = "<<fMCGenTime<<std::endl;
     std::cout<<"Time for Fitting = "<<fFitTime<<std::endl;
@@ -846,11 +849,13 @@ void unbinfit::RunBinFit()
     else
         setExernalContrainFit();
     printCurrentParameters();
+
     prepareData();
     bookOutputTree();
     //! setup stuffs for MC fits
     setCentralParameters();
     getParameters();
+
 
    totdecaymodel->initPath();
    fB=new TF1("fB",totdecaymodel,&fitF::fcndecay,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay");
@@ -945,7 +950,7 @@ void unbinfit::RunBinFit()
    fitCovQual=fitter.Result().Ndf();
    fitNumInvalidNLL=fitter.Result().NCalls();
    fitEdm=fitter.Result().Edm();
-   fitMinNll=fitter.Result().MinFcnValue();
+   fitMinNll=fitter.Result().MinFcnValue();   
    foutputtree->Fill();
 
 
@@ -956,6 +961,7 @@ void unbinfit::RunBinFit()
        if (!pvar[i]->isConstant())
            ofs<<i<<"\t"<<pVal[i]<<"\t"<<pValError[i]<<std::endl;
    }
+
 
    //! construct parent/daugters decay components for plotting demonstration
    fB_parent=new TF1("fB_parent",totdecaymodel,&fitF::fcndecay_parent,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay_parent");
@@ -982,6 +988,8 @@ void unbinfit::RunBinFit()
    hSB->Write();
    hSB2->Write();
    plotResultsMore(1);
+
+   ofs<<"chisquare/NDF = "<<chiSquareNDF<<std::endl;
 
    for (int i=0;i<fnMC;i++){
        generateMC();
@@ -1214,7 +1222,8 @@ void unbinfit::plotResultsMore(Int_t opt)
         }
         chisquare=2*chisquare;
         cout<<"ndf="<<fitres->floatParsFinal().getSize()<<endl;
-        cout<<"chisquare/ndf="<<chisquare/(nbinsHB*2+fitres->floatParsFinal().getSize())<<endl;
+        chiSquareNDF=chisquare/(nbinsHB*2+fitres->floatParsFinal().getSize());
+        cout<<"chisquare/ndf="<<chiSquareNDF<<endl;
         resplot_0n=new TGraphErrors(model0nHist->GetN(),xres,yres,0,yreserr);
         for (Int_t i=0;i<modelbkg0nHist->GetN();i++){
             Double_t xi=modelbkg0nHist->GetX()[i];
@@ -1245,7 +1254,8 @@ void unbinfit::plotResultsMore(Int_t opt)
         chisquare=2*chisquare;
         cout<<"k="<<k<<endl;
         cout<<"ndf="<<fitCovQual<<endl;
-        cout<<"chisquare/ndf="<<chisquare/(fitCovQual)<<endl;
+        chiSquareNDF=chisquare/(fitCovQual);
+        cout<<"chisquare/ndf="<<chiSquareNDF<<endl;
         resplot_0n=new TGraphErrors(k,xres,yres,0,yreserr);
         k=0;
         for (Int_t i=0;i<hB->GetNbinsX();i++){
@@ -1752,7 +1762,7 @@ void unbinfit::generateRoofitEvaluate()
 
 
     //! calculation for 1neu
-    ofnc<<"double fdecay1n=fparentdecay*(be*randcoinf1n+b1ne*ne0*p1n0*(1-randcoinf1n-randcoinfgt0n)+b2ne*2*(ne0*n1n2ne*(1-ne0*n1n2ne))*p2n0*(1-randcoinf1n-randcoinfgt0n)-b2ne*ne0*n1n2ne*ne0*n1n2ne*p2n0*randcoinf1n);"<<std::endl;
+    ofnc<<"double fdecay1n=fparentdecay*(be*randcoinf1n+b1ne*ne0*p1n0*(1-randcoinf1n-randcoinfgt0n)+b2ne*2*(n1n2ne*(1-n1n2ne))*p2n0*(1-randcoinf1n-randcoinfgt0n)-b2ne*n1n2ne*n1n2ne*p2n0*randcoinf1n);"<<std::endl;
 
     for (Int_t i=0;i<fpath->npaths;i++){
 #ifdef PATHFLOW
@@ -1766,7 +1776,7 @@ void unbinfit::generateRoofitEvaluate()
     }
 
     //! calculation for 2neu
-    ofnc<<"double fdecay2n=fparentdecay*(b2ne*ne0*n1n2ne*ne0*n1n2ne*p2n0*(1-randcoinf2n-randcoinfgt0n)+randcoinf2n*be+b1ne*ne0*p1n0*(randcoinf1n*(1-randcoinfgt0n)-randcoinf2n)+b2ne*2*(ne0*n1n2ne*(1-ne0*n1n2ne))*p2n0*(randcoinf1n*(1-randcoinfgt0n)-randcoinf2n));"<<std::endl;
+    ofnc<<"double fdecay2n=fparentdecay*(b2ne*n1n2ne*n1n2ne*p2n0*(1-randcoinf2n-randcoinfgt0n)+randcoinf2n*be+b1ne*ne0*p1n0*(randcoinf1n*(1-randcoinfgt0n)-randcoinf2n)+b2ne*2*(n1n2ne*(1-n1n2ne))*p2n0*(randcoinf1n*(1-randcoinfgt0n)-randcoinf2n));"<<std::endl;
     for (Int_t i=0;i<fpath->npaths;i++){
 #ifdef PATHFLOW
         if (fpath->ispathhasflow[i]){
