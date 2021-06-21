@@ -1,3 +1,0 @@
-#!/bin/bash
-
-root -b -q 'autogenparmsfile.c("Sn138parms.txt",138,50)'
