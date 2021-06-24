@@ -68,6 +68,7 @@ set(PROJ_DATA
   FRDM-QRPA12-halflife.txt
   stable.csv
   anasim.C
+  genFunctionCopy.sh
   runsinglefit.sh
   )
 
