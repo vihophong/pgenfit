@@ -1,0 +1,4 @@
+#!/bin/bash
+./runfit.sh In134.root parmsIn134.txt 0.5856 0.0296 0.08 1
+
+
