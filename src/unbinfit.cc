@@ -136,9 +136,16 @@ void unbinfit::fitBackground(Int_t opt)
     //!*****************************************
     //! Prepare and fit negative background function
     //! *****************************************
+
     // bkg parameters
-    bkg1nratio=new RooRealVar("bkg1nratio","bkg1nratio",0.5,0,1) ;
-    bkg2nratio=new RooRealVar("bkg2nratio","bkg2nratio",0.5,0,1) ;
+    Double_t ini_nnbkg=tree->Draw("",Form("x<%f&&x>%f",-p_deadtime,-p_timerange),"goff");
+    Double_t ini_nnbkg1n = tree->Draw("",Form("x<%f&&x>%f&&y==1",-p_deadtime,-p_timerange),"goff");
+    Double_t ini_nnbkg2n = tree->Draw("",Form("x<%f&&x>%f&&y==2",-p_deadtime,-p_timerange),"goff");
+
+    cout<<"Background ratios = "<<ini_nnbkg1n/ini_nnbkg<<"\t"<<ini_nnbkg2n/ini_nnbkg1n<<endl;
+
+    bkg1nratio=new RooRealVar("bkg1nratio","bkg1nratio",ini_nnbkg1n/ini_nnbkg,ini_nnbkg1n/ini_nnbkg/5,ini_nnbkg1n/ini_nnbkg*5) ;
+    bkg2nratio=new RooRealVar("bkg2nratio","bkg2nratio",ini_nnbkg2n/ini_nnbkg1n,ini_nnbkg2n/ini_nnbkg1n/5,ini_nnbkg2n/ini_nnbkg1n*5) ;
 
     RooRealVar slope1("slope1","slope1",0.,-0.1,0.1) ;
     RooRealVar slope2("slope2","slope2",0.,-0.1,0.1) ;
@@ -326,7 +333,7 @@ void unbinfit::initFitParameters()
     nnsig=nnsig-nnbkg;
 
     nbkg=new RooRealVar("nbkg","nbkg",nnbkg,nnbkg/3,nnbkg*3);
-    nsig=new RooRealVar("nsig","nsig",nnsig,0,nnsig*10);
+    nsig=new RooRealVar("nsig","nsig",nnsig,nnsig*0.5,nnsig*1.5);
     nbkg->setError(TMath::Sqrt(nnbkg));
 }
 

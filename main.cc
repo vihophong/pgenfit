@@ -32,6 +32,8 @@ int main(int argc, char *argv[])
         sprintf(inputeffparms,"effparmsex.txt");
         sprintf(inputRootFile,"testdata.root");
         //keep default start time (0.08s)
+        fit->setStartTime(0);
+        fit->setEntriesLimit(5000);
         fit->Init(inpparms,inputRootFile);
         fit->setInputEffParms(inputeffparms);
         fit->setOutputFile(argv[1]);

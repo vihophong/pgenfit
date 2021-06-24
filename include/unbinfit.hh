@@ -74,7 +74,7 @@ class unbinfit
     void SetParameters();
 
     void setOutputFile(char* outputData){sprintf(foutputData,"%s",outputData);}
-
+    void setEntriesLimit(Long64_t entries){fnentrieslimit = entries;}
     void setStartTime(double deadtime){p_deadtime=deadtime;}
     void Run();
     void RunBinFit();
