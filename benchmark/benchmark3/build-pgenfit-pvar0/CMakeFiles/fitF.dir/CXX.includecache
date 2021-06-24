@@ -1,0 +1,10 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/phong/projects/brikenmacros/fitting/pgenfit/pgenfitv5/benchmark/benchmark3/pgenfit_pvar0/include/fitFLinkDef.hh
+

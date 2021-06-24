@@ -1,0 +1,3 @@
+#!/bin/bash
+./runsinglefit.sh benchmarkIn134.txt benchmarkIn134.root out_testIn134.root 0.08
+

@@ -1,0 +1,142 @@
+
+ Double_t fitF::evaluate() const
+  {
+       //TStopwatch stopwatch;
+       //stopwatch.Start();
+       Double_t ret=0;
+       Double_t lexp[fpath->nri];
+       for (Int_t i=0;i<fpath->nri;i++) lexp[i]=TMath::Exp(-(*p[i])*x);
+       if (y==0){
+           ret = fcn_decay(lexp)-fcn_1ndecay(lexp)-fcn_2ndecay(lexp);
+       }else if (y==1){
+           ret = fcn_1ndecay(lexp);
+       }else{
+           ret = fcn_2ndecay(lexp);
+       }
+
+       //stopwatch.Stop();
+       //std::cout<<"Time (us) = "<<stopwatch.RealTime()*1e6<<std::endl;
+       return ret;
+  }
+
+
+ Double_t fitF::corefcn(Int_t ndecay,Int_t*  idecaymap,Int_t*  inneu,Double_t N0, Double_t *lexp) const{
+     Double_t factor1=1.;
+     for (int i=0;i<ndecay-1;i++){
+         if (inneu[i]==0){
+             factor1=factor1 * (*p[fpath->nri3+idecaymap[i+1]])*(1-(*p[fpath->nri+idecaymap[i]])-(*p[fpath->nri2+idecaymap[i]]))*(*p[idecaymap[i]]);//branching here!
+         }else if (inneu[i]==1){
+             factor1=factor1 * (*p[fpath->nri3+idecaymap[i+1]])*(*p[fpath->nri+idecaymap[i]])*(*p[idecaymap[i]]);
+         }else{
+             factor1=factor1 * (*p[fpath->nri3+idecaymap[i+1]])*(*p[fpath->nri2+idecaymap[i]])*(*p[idecaymap[i]]);
+         }
+     }
+
+     Double_t factor2=0;
+     for (int i=0;i<ndecay;i++){
+         Double_t factor2i=lexp[idecaymap[i]];
+         Double_t factor2ij=1;
+         for (int j=0;j<ndecay;j++){
+             if (j!=i) {
+                 factor2ij=factor2ij*((*p[idecaymap[j]])-(*p[idecaymap[i]]));
+             }
+         }
+         factor2=factor2+factor2i/factor2ij;
+     }
+     return factor1*N0*factor2;
+ }
+
+
+ Double_t fitF::fcn_decay(Double_t* lexp) const{
+
+     //init
+     //! Parent nuclei
+     Double_t N0=*p[fpath->nri5]/ *p[0];
+     Double_t returnval=(*p[0])*N0*lexp[0];
+
+
+     for (Int_t i=0;i<fpath->npaths;i++){
+         //if (fpath->ispathhasflow[i]==1){
+             Double_t corefunc_cal=corefcn(fpath->ndecay[i],fpath->decaymap[i],fpath->nneu[i],N0,lexp);
+             returnval+=(*p[fpath->decaymap[i][fpath->ndecay[i]-1]])*corefunc_cal;
+         //}
+     }
+
+     return returnval;
+ }
+
+
+ //! Function for decay with 1 neutron emission
+ Double_t fitF::fcn_1ndecay(Double_t* lexp) const{
+     Double_t randcoinfgt0n=*p[fpath->nri5+2];
+     Double_t randcoinf1n=*p[fpath->nri5+1];
+     //init
+     Double_t N0=*p[fpath->nri5]/ *p[0];
+     //! Parent nuclei
+     //! random coinc of beta decay of parent
+     Double_t returnval=(*p[0])*N0*lexp[0]*randcoinf1n;
+     //! decay with 1 neutron of parent
+     returnval+=(*p[fpath->nri4])*(*p[fpath->nri])*(*p[0])*N0*lexp[0]*(1-randcoinf1n-randcoinfgt0n);
+     //! decay with 1 neutron of parent from p2n
+     returnval+=2*((*p[fpath->nri4])*(1-(*p[fpath->nri4])))*(*p[fpath->nri2])*(*p[0])*N0*lexp[0]*(1-randcoinf1n-randcoinfgt0n);
+     //! decay with 2 neutron of parent (not random 1 neutron)
+     returnval-=(*p[fpath->nri4])*(*p[fpath->nri4])*(*p[fpath->nri2])*(*p[0])*N0*lexp[0]*randcoinf1n;
+
+
+     for (Int_t i=0;i<fpath->npaths;i++){
+         if (fpath->ispathhasflow[i]==1){
+             Double_t corefunc_cal=corefcn(fpath->ndecay[i],fpath->decaymap[i],fpath->nneu[i],N0,lexp);
+             //! random coinc of beta decay of daugter
+             returnval+=(*p[fpath->decaymap[i][fpath->ndecay[i]-1]])*corefunc_cal*randcoinf1n;
+             //! decay with 1 neutron of daugter nuclei
+             returnval+=(*p[fpath->nri4+fpath->decaymap[i][fpath->ndecay[i]-1]])*(*p[fpath->nri+fpath->decaymap[i][fpath->ndecay[i]-1]])*(*p[fpath->decaymap[i][fpath->ndecay[i]-1]])*corefunc_cal*(1-randcoinf1n-randcoinfgt0n);
+
+             //! decay with 1 neutron of daugter from p2n
+             returnval+=2*((*p[fpath->nri4+fpath->decaymap[i][fpath->ndecay[i]-1]])*(1-(*p[fpath->nri4+fpath->decaymap[i][fpath->ndecay[i]-1]])))*(*p[fpath->nri2+fpath->decaymap[i][fpath->ndecay[i]-1]])*(*p[fpath->decaymap[i][fpath->ndecay[i]-1]])*corefunc_cal*(1-randcoinf1n-randcoinfgt0n);
+             //! decay with 2 neutron of parent (not random 1 neutron)
+             returnval-=(*p[fpath->nri4+fpath->decaymap[i][fpath->ndecay[i]-1]])*(*p[fpath->nri4+fpath->decaymap[i][fpath->ndecay[i]-1]])*(*p[fpath->nri2+fpath->decaymap[i][fpath->ndecay[i]-1]])*(*p[fpath->decaymap[i][fpath->ndecay[i]-1]])*corefunc_cal*randcoinf1n;
+         }
+     }
+
+     return returnval;
+ }
+
+
+ //! Function for decay with 2 neutron emission
+ Double_t fitF::fcn_2ndecay(Double_t* lexp) const{
+     Double_t randcoinf2n=*p[fpath->nri5+3];
+     Double_t randcoinfgt0n=*p[fpath->nri5+2];
+     Double_t randcoinf1n=*p[fpath->nri5+1];
+     //init
+     Double_t N0=*p[fpath->nri5]/ *p[0];
+
+     //! parent
+     //! decay with 2 neutron from P2n of parent
+     Double_t returnval=(*p[fpath->nri4])*(*p[fpath->nri4])*(*p[fpath->nri2])*(*p[0])*N0*lexp[0]*(1-randcoinf2n-randcoinfgt0n);
+
+     //! random coinc of beta decay of parent
+     returnval+=(*p[0])*N0*lexp[0]*randcoinf2n;
+     //! random 1n decay of parent
+     returnval+=(*p[fpath->nri4])*(*p[fpath->nri])*(*p[0])*N0*lexp[0]*(randcoinf1n*(1-randcoinfgt0n)-randcoinf2n);
+
+     //! decay with 1 neutron from P2n of parent - randomly correlated
+     returnval+=2*((*p[fpath->nri4])*(1-(*p[fpath->nri4])))*(*p[fpath->nri2])*(*p[0])*N0*lexp[0]*(randcoinf1n*(1-randcoinfgt0n)-randcoinf2n);
+
+
+     for (Int_t i=0;i<fpath->npaths;i++){
+         if (fpath->ispathhasflow[i]==1){
+             Double_t corefunc_cal=corefcn(fpath->ndecay[i],fpath->decaymap[i],fpath->nneu[i],N0,lexp);
+             //! decay with 2 neutron from P2n of daugter
+             returnval+=(*p[fpath->nri4+fpath->decaymap[i][fpath->ndecay[i]-1]])*(*p[fpath->nri4+fpath->decaymap[i][fpath->ndecay[i]-1]])*(*p[fpath->nri2+fpath->decaymap[i][fpath->ndecay[i]-1]])*(*p[fpath->decaymap[i][fpath->ndecay[i]-1]])*corefunc_cal*(1-randcoinf2n-randcoinfgt0n);
+             //! random coinc of beta decay of daugter
+             returnval+=(*p[fpath->decaymap[i][fpath->ndecay[i]-1]])*corefunc_cal*randcoinf2n;
+             //! random 1n decay of daugter
+             returnval+=(*p[fpath->nri4+fpath->decaymap[i][fpath->ndecay[i]-1]])*(*p[fpath->nri+fpath->decaymap[i][fpath->ndecay[i]-1]])*(*p[fpath->decaymap[i][fpath->ndecay[i]-1]])*corefunc_cal*(randcoinf1n*(1-randcoinfgt0n)-randcoinf2n);
+             //! decay with 1 neutron from P2n of daugter - randomly correlated
+             returnval+=2*((*p[fpath->nri4+fpath->decaymap[i][fpath->ndecay[i]-1]])*(1-(*p[fpath->nri4+fpath->decaymap[i][fpath->ndecay[i]-1]])))*(*p[fpath->nri2+fpath->decaymap[i][fpath->ndecay[i]-1]])*(*p[fpath->decaymap[i][fpath->ndecay[i]-1]])*corefunc_cal*(randcoinf1n*(1-randcoinfgt0n)-randcoinf2n);
+         }
+     }
+
+     return returnval;
+ }
+

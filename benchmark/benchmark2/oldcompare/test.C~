@@ -1,0 +1,222 @@
+/// \file
+/// \ingroup tutorial_roofit
+/// \notebook -nodraw
+///  'MULTIDIMENSIONAL MODELS' RooFit tutorial macro #312
+///
+///  Performing fits in multiple (disjoint) ranges in one or more dimensions
+///
+/// \macro_output
+/// \macro_code
+/// \author 07/2008 - Wouter Verkerke
+
+
+#include "RooRealVar.h"
+#include "RooDataSet.h"
+#include "RooGaussian.h"
+#include "RooConstVar.h"
+#include "RooProdPdf.h"
+#include "RooAddPdf.h"
+#include "RooPolynomial.h"
+#include "TCanvas.h"
+#include "TTree.h"
+#include "TAxis.h"
+#include "RooPlot.h"
+#include "RooFitResult.h"
+#include "RooExponential.h"
+#include "RooGenericPdf.h"
+#include "RooCategory.h"
+#include "TRandom3.h"
+#include "TFile.h"
+#include "fitF.cxx"
+#include "fitFbkg.cxx"
+#include "RooGaussian.h"
+#include "RooConstVar.h"
+
+
+#include "RooRandom.h"
+#include "RooDataSet.h"
+#include "RooRealVar.h"
+#include "RooConstVar.h"
+#include "RooAddition.h"
+#include "RooDataHist.h"
+#include "RooPoisson.h"
+#include "RooPlot.h"
+
+#include "RooNLLVar.h"
+
+#include "RooStats/ConfInterval.h"
+#include "RooStats/PointSetInterval.h"
+#include "RooStats/ConfidenceBelt.h"
+#include "RooStats/FeldmanCousins.h"
+#include "RooStats/ProfileLikelihoodCalculator.h"
+#include "RooStats/MCMCCalculator.h"
+#include "RooStats/BayesianCalculator.h"
+#include "RooStats/MCMCIntervalPlot.h"
+#include "RooStats/LikelihoodIntervalPlot.h"
+
+#include "RooStats/ProofConfig.h"
+#include "RooStats/ToyMCSampler.h"
+#include "RooProfileLL.h"
+
+#include <fstream>
+
+using namespace RooFit ;
+using namespace RooStats;
+
+Double_t p_deadtime=0;
+Double_t p_timerange=10;
+
+using namespace std;
+
+
+void getparms(Double_t* parms,Double_t* parmserr, Double_t* parmsmax, Double_t* parmsmin, Bool_t* isparmsfix,char* infile,Double_t nsig=10.)
+{
+    std::ifstream ifs(infile);
+    Int_t rino;
+    Double_t temp;
+    Bool_t flagfix[knri][3];
+    Double_t decayparms[knri][3];
+    Double_t decayparms_err[knri][3];
+
+    for (int i=0;i<knri;i++){
+        ifs>>rino;
+        for (int j=0;j<3;j++){
+            ifs>>temp;
+            if (temp>=0){
+                flagfix[i][j]=true;
+                decayparms[i][j]=temp;
+            }else{
+                flagfix[i][j]=false;
+                decayparms[i][j]=(-temp);
+            }
+            ifs>>temp;decayparms_err[i][j]=temp;
+        }
+    }
+
+    for (int i=0;i<knri;i++){
+        for (int j=0;j<3;j++){
+            if (j==0){//for half-life
+                decayparms_err[i][j]=TMath::Log(2)/decayparms[i][j]/decayparms[i][j]*decayparms_err[i][j];
+                decayparms[i][j]=TMath::Log(2)/decayparms[i][j];
+            }
+        }
+    }
+
+
+    //! calculate output
+    for (int i=0;i<knri;i++){
+        for (int j=0;j<2;j++){
+            isparmsfix[j*knri+i]=flagfix[i][j];
+            parms[j*knri+i]=decayparms[i][j];
+            parmserr[j*knri+i]=decayparms_err[i][j];
+            parmsmax[j*knri+i]=decayparms[i][j]+decayparms_err[i][j]*nsig;
+            if ((decayparms[i][j]-decayparms_err[i][j]*nsig)>0)
+                parmsmin[j*knri+i]=decayparms[i][j]-decayparms_err[i][j]*nsig;
+            else
+                parmsmin[j*knri+i]=TMath::Log(2)/100000000000;
+            //for pn
+            if (j!=0) {parmsmin[j*knri+i]=0;parmsmax[j*knri+i]=1;}
+        }
+    }
+
+    //! read p2n parrent
+    parms[knri*2]=decayparms[0][2];
+    parmserr[knri*2]=decayparms_err[0][2];
+    parms[knri*2]=decayparms[0][2];
+    parmsmin[knri*2]=0;parmsmax[knri*2]=1;
+    isparmsfix[knri*2]=flagfix[0][2];
+
+    //! read initial activity, background and random coincidence factor
+    for (int i=0;i<5;i++){
+        ifs>>parms[knri*2+i+1]>>parmsmin[knri*2+i+1]>>parmsmax[knri*2+i+1];
+        parmserr[knri*2+i+1]=parms[knri*2+i+1]-parmsmin[knri*2+i+1];
+        cout<<knri*2+i+1<<"\t"<<parms[knri*2+i+1]<<"\t"<<parmsmin[knri*2+i+1]<<"\t"<<parmsmax[knri*2+i+1]<<endl;
+        isparmsfix[knri*2+i+1]=false;
+        if (i==4) {
+            parmsmin[knri*2+i+1]=0;parmsmax[knri*2+i+1]=1;
+            if (parms[knri*2+i+1]>=0){
+                isparmsfix[knri*2+i+1]=true;
+            }else{
+                parms[knri*2+i+1]=-parms[knri*2+i+1];
+                isparmsfix[knri*2+i+1]=false;
+            }
+        }
+    }
+}
+
+void mlhfitsim()
+{
+    //! Get paramters
+    Double_t parms[knri*2+6];
+    Double_t parmserr[knri*2+6];
+    Double_t parmsmax[knri*2+6];
+    Double_t parmsmin[knri*2+6];
+    Bool_t isparmsfix[knri*2+6];
+    getparms(parms,parmserr,parmsmax,parmsmin,isparmsfix,"parmsfit.txt",5);
+    for (int i=0;i<knri*2+6;i++){
+        cout<<"parm "<<i<<"\t"<<parms[i]<<"\t"<<parmserr[i]<<"\t"<<parmsmin[i]<<"\t"<<parmsmax[i]<<"\t"<<isparmsfix[i]<<endl;
+    }
+
+    // Import tree to total decay data
+    TFile *f=TFile::Open("outhist.root");
+
+    //! define variables
+    RooRealVar x("x","x",p_deadtime,p_timerange) ;
+    RooRealVar xbkg("x","x",-p_timerange,-p_deadtime) ;
+
+    //! define discrete variable y
+    RooCategory y("y","y");
+    y.defineType("0neu",0);
+    y.defineType("1neu",1);
+    y.defineType("2neu",2);
+    
+
+    RooRealVar* p[knri*2+4];
+    // decay parameters
+    for (int i=0;i<knri*2+1;i++){
+        p[i]=new RooRealVar(Form("p%d",i),Form("p%d",i),parms[i],parmsmin[i],parmsmax[i]);
+        if (isparmsfix[i]==1){
+            cout<<"fixed value p"<<i<<"\tval="<<parms[i]<<endl;
+            p[i]->setConstant(kTRUE);
+        }else{
+            cout<<"variable value p"<<i<<"\tval "<<parms[i]<<"\tmin="<<parmsmin[i]<<"\tmax="<<parmsmax[i]<<endl;
+        }
+    }
+
+    //! get random coincidence
+
+    TH1F* hdecayconly1neub;
+    TH1F* hdecaycmorethan0neub;
+    TH1F* hdecayconly2neub;
+
+    TH1F* hdecayall;
+
+    f->GetObject("hdecayconly1neub",hdecayconly1neub);
+    f->GetObject("hdecaycmorethan0neub",hdecaycmorethan0neub);
+    f->GetObject("hdecayconly2neub",hdecayconly2neub);
+
+    f->GetObject("hdecay",hdecayall);
+
+    Double_t  nball=hdecayall->GetEntries();
+    Double_t n1nbwd=hdecayconly1neub->GetEntries();
+    Double_t gt0nbwd=hdecaycmorethan0neub->GetEntries();
+    Double_t n2nbwd=hdecayconly2neub->GetEntries();
+
+    // random coincicence parameters
+    p[knri*2+1]=new RooRealVar("p19","p19",n1nbwd/nball,n1nbwd/nball/3,n1nbwd/nball*3);
+    p[knri*2+2]=new RooRealVar("p20","p20",gt0nbwd/nball,gt0nbwd/nball/3,gt0nbwd/nball*3);
+    p[knri*2+3]=new RooRealVar("p21","p21",n2nbwd/nball,n2nbwd/nball/3,n2nbwd/nball*3);
+    p[knri*2+1]->setConstant(kTRUE);
+    p[knri*2+2]->setConstant(kTRUE);
+    p[knri*2+3]->setConstant(kTRUE);
+
+    //! neutron detection efficinecy
+    //RooRealVar neueff("neueff","neueff",0.613384,0.,1.) ;
+    RooRealVar neueff("neueff","neueff",0.62,0.,1.) ;
+    neueff.setConstant(kTRUE);
+
+    //! sig pdf
+    fitF totdecaymodel("totdecaymodel","totdecaymodel",x,y,neueff,*p[0],*p[1],*p[2],*p[3],*p[4],*p[5],*p[6],*p[7],*p[8],*p[9],*p[10],*p[11],*p[12],*p[13],*p[14],*p[15],*p[16],*p[17],*p[18],*p[19],*p[20],*p[21]);
+    RooDataSet* data = totdecaymodel.generate(RooArgSet(x,y),5000) ;
+
+}

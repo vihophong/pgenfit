@@ -1,0 +1,3 @@
+## Note:
+
+This benchmark test compare the mlhfitv1 code which was used for my PhD thesis and the current version of pgenfit using identical input parameters and unbinned data. The purpose is to see if we can reproduce the PhD fitting results using pgenfit.

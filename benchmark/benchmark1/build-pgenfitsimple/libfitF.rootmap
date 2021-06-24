@@ -1,0 +1,6 @@
+[ libfitF.so ]
+# List of selected classes
+class fitF
+class fitFbkg
+class fitFbkgflat
+header include/fitF.hh
