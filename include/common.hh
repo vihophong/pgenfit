@@ -20,14 +20,14 @@
 #include <vector>
 #include <list>
 
-#define NCPUS_UNBINFIT 24
+#define NCPUS_UNBINFIT 2
 
 #define EVAL_FAST
 #define PATHFLOW
 //set if you wish parent neutron efficiency to be distributed from 40 to 68%
 #define PARENT_NEUEFF_UNIFORM
 
-#define ENTRYLIMIT 5000 //set negative for not limiting the entries by default
+#define ENTRYLIMIT -5000 //set negative for not limiting the entries by default
 #define STARTFIT 0.08
 
 // set if production rate of isiomeric state equal 1

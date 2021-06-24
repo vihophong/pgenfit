@@ -88,6 +88,7 @@ class unbinfit
     void setExernalContrainFit();
 
     void prepareData();
+    void SetRandomSeed(Int_t seednoin){seedno = seednoin;}
     void prepareMonteCarloData(int nevents);
     void doFit();
 
@@ -184,6 +185,7 @@ class unbinfit
 
     //! stuffs for MC generation
     TRandom3* rseed;
+    Int_t seedno;
     Int_t fnMC;
     TTree* foutputtree;
 

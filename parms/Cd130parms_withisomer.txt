@@ -1,8 +1,8 @@
 # Note should start from #, negative indicate varying parameter, half-life is in second
 # RI should be in the sequences of increasing Z and decreasing A for each isotropic row
 #Name	Z	A	Half-life	Abs Error Half-life	lowerHL	upperHL	P1n	Abs Error P1n	lowerP1n	upperP1n	P2n	Abs Error P2n	lowerP2n	upperP2n	isomer ratio	isomer ratio err	lower isomer ratio	upper isomer ratio	Half-life	Abs Error Half-life	lowerHL	upperHL	P1n	Abs Error P1n	lowerP1n	upperP1n	P2n	Abs Error P2n	lowerP2n	upperP2n    Neu.Eff	Neu.Eff Err	lowerNeu.Eff	upperNeu.Eff
-^{130}Cd	48	130	-0.127	0.002	0.0254	0.635	-3.5	1	0	200	-25	0	0	200	0.646575 	0.0193585	0	1
-^{130}In*	49	130	0.274	0.008	0.0548	1.37	1.2	0.29	0	200	0	0	0	200	0.646575 	0.0193585	0	1	-0.5	0.1	0	1	0.54	0.01	0.27	1.08	1.65	0.15	0	100	0	0	0	100	0.646575    0.0193585 0   1
+^{130}Cd	48	130	-0.135573	0.002	0.0254	0.635	-2.91872	0	0	200	-50	0	0	200	0.646575 	0.0193585	0	1
+^{130}In*	49	130	0.274	0.008	0.0548	1.37	1.2	0.29	0	200	0	0	0	200	0.646575 	0.0193585	0	1	-0.28688	0.1	0	1	0.54	0.01	0.27	1.08	1.65	0.15	0	100	0	0	0	100	0.646575    0.0193585 0   1
 ^{129}In	49	129	0.609	0.007	0.1218	3.045	0.23	0.1	0	200	0	0	0	200	0.646575 	0.0193585	0	1
 ^{128}In	49	128	0.84	0.06	0.168	4.2	0.021	0.021	0	200	0	0	0	200	0.646575 	0.0193585	0	1
 ^{130}Sn	50	130	223.2	4.2	44.64	1116	0	0	0	200	0	0	0	200	0.646575 	0.0193585	0	1

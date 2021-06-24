@@ -47,8 +47,7 @@ unbinfit::unbinfit()
     fMCGenTime=0;
     fFitTime=0;
 
-    //rseed=new TRandom3();
-    rseed=new TRandom3();
+    seedno=4357;
     fnMC=0;
 
     for (int i=0;i<kmaxparms;i++)ipVal[i]=i;
@@ -76,6 +75,8 @@ unbinfit::~unbinfit()
 
 void unbinfit::Init(char* inputParms, char* inputData)
 {
+    //rseed=new TRandom3();
+    rseed=new TRandom3(seedno);
     sprintf(finputParms,"%s",inputParms);
     sprintf(finputData,"%s",inputData);
     std::clog<< __PRETTY_FUNCTION__ <<"read input files:"<<

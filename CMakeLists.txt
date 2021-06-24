@@ -71,6 +71,7 @@ set(PROJ_DATA
   genFunctionCopy.sh
   runsinglefit.sh
   runbenchmark.sh
+  rununbinfit_multithreads.sh
   )
 
 
