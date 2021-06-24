@@ -12,6 +12,6 @@ ignore errors
 comparing with mlhfitv1
 
 ```bash
-cd pgenfit/dev/mlhfitv1
+cd pgenfit/dev/mlhfitv1_forbenchmark
 ./runbenchmark.sh
 ```
