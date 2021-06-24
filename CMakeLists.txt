@@ -70,6 +70,7 @@ set(PROJ_DATA
   anasim.C
   genFunctionCopy.sh
   runsinglefit.sh
+  runbenchmark.sh
   )
 
 
