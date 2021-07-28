@@ -1,6 +1,6 @@
 #!/bin/bash
 ./genFunctionCopy.sh $1
-make
+make -j 10
 nn=$(expr $6 / $8)
 hh=""
 for i in $(seq 1 $8)

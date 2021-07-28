@@ -17,7 +17,6 @@
 #include <iostream>
 
 
-
 using namespace RooFit;
 
 
@@ -28,6 +27,8 @@ unbinfit::unbinfit()
     ffitopt=0;// only 0 - fix parameter; 1 - constrain parameters
 
     chiSquareNDF=0;
+    chiSquareNDF1n=0;
+    chiSquareNDF2n=0;
     fnentrieslimit=ENTRYLIMIT;
 
     p_deadtime=STARTFIT;
@@ -59,6 +60,8 @@ unbinfit::unbinfit()
 
     plotrangelow=-0.5;
     plotrangehi=3;
+    fmineffMC = 0.475349;
+    fmaxeffMC = 0.664527;
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -77,6 +80,10 @@ void unbinfit::Init(char* inputParms, char* inputData)
 {
     //rseed=new TRandom3();
     rseed=new TRandom3(seedno);
+
+    rseedA = new asymGausRandom();
+    rseedA->Init(seedno);
+
     sprintf(finputParms,"%s",inputParms);
     sprintf(finputData,"%s",inputData);
     std::clog<< __PRETTY_FUNCTION__ <<"read input files:"<<
@@ -97,6 +104,12 @@ void unbinfit::Init(char* inputParms, char* inputData)
     TFile *f=TFile::Open(finputData);
     f->GetObject("tree",tree);
     f->GetObject("treebw",treeb);
+
+    const char* evn_nentrieslimit = std::getenv("ENTRYLIMIT");
+    if (evn_nentrieslimit){
+        fnentrieslimit = atoi(evn_nentrieslimit);
+        cout<<"ENTRYLIMIT = "<<fnentrieslimit<<endl;
+    }
     if (fnentrieslimit>0) tree->SetEntries(fnentrieslimit);
 
     //!*****************************************
@@ -224,14 +237,17 @@ void unbinfit::initFitParameters()
         p[i]=new RooRealVar(Form("p%d",i),Form("p%d",i),fdecaypath->getMember(i)->decay_lamda,fdecaypath->getMember(i)->decay_lamdalow,fdecaypath->getMember(i)->decay_lamdaup);
         pvar[i]=(RooRealVar*) p[i];
         pvar[i]->setError(fdecaypath->getMember(i)->decay_lamdaerr);
+        pValErrorHi[i] = fdecaypath->getMember(i)->decay_lamdaerrhi;
 
         p[fdecaypath->getNMember()+i]=new RooRealVar(Form("p%d",fdecaypath->getNMember()+i),Form("p%d",fdecaypath->getNMember()+i),fdecaypath->getMember(i)->decay_p1n,fdecaypath->getMember(i)->decay_p1nlow,fdecaypath->getMember(i)->decay_p1nup);
         pvar[fdecaypath->getNMember()+i]=(RooRealVar*) p[fdecaypath->getNMember()+i];
         pvar[fdecaypath->getNMember()+i]->setError(fdecaypath->getMember(i)->decay_p1nerr);
+        pValErrorHi[fdecaypath->getNMember()+i] = fdecaypath->getMember(i)->decay_p1nerrhi;
 
         p[fdecaypath->getNMember()*2+i]=new RooRealVar(Form("p%d",fdecaypath->getNMember()*2+i),Form("p%d",fdecaypath->getNMember()*2+i),fdecaypath->getMember(i)->decay_p2n,fdecaypath->getMember(i)->decay_p2nlow,fdecaypath->getMember(i)->decay_p2nup);
         pvar[fdecaypath->getNMember()*2+i]=(RooRealVar*) p[fdecaypath->getNMember()*2+i];
-        pvar[fdecaypath->getNMember()*2+i]->setError(fdecaypath->getMember(i)->decay_p1nerr);
+        pvar[fdecaypath->getNMember()*2+i]->setError(fdecaypath->getMember(i)->decay_p2nerr);
+        pValErrorHi[fdecaypath->getNMember()*2+i] = fdecaypath->getMember(i)->decay_p2nerrhi;
 
         p[fdecaypath->getNMember()*3+i]=new RooRealVar(Form("p%d",fdecaypath->getNMember()*3+i),Form("p%d",fdecaypath->getNMember()*3+i),fdecaypath->getMember(i)->population_ratio,fdecaypath->getMember(i)->population_ratiolow,fdecaypath->getMember(i)->population_ratioup);
         pvar[fdecaypath->getNMember()*3+i]=(RooRealVar*) p[fdecaypath->getNMember()*3+i];
@@ -239,7 +255,13 @@ void unbinfit::initFitParameters()
 
         p[fdecaypath->getNMember()*4+i]=new RooRealVar(Form("p%d",fdecaypath->getNMember()*4+i),Form("p%d",fdecaypath->getNMember()*4+i),fdecaypath->getMember(i)->neueff,fdecaypath->getMember(i)->neuefflow,fdecaypath->getMember(i)->neueffup);
         pvar[fdecaypath->getNMember()*4+i]=(RooRealVar*) p[fdecaypath->getNMember()*4+i];
-        pvar[fdecaypath->getNMember()*4+i]->setError(fdecaypath->getMember(i)->neuefferr);
+        if (fdecaypath->getMember(i)->neuefferr<0){
+            pvar[fdecaypath->getNMember()*4+i]->SetTitle((char*)"-");
+            pvar[fdecaypath->getNMember()*4+i]->setError(-fdecaypath->getMember(i)->neuefferr);
+        }else{
+            pvar[fdecaypath->getNMember()*4+i]->setError(fdecaypath->getMember(i)->neuefferr);
+        }
+
     }
     // initialize initial activity and set fixed to 1
     p[fdecaypath->getNMember()*5]=new RooRealVar(Form("p%d",fdecaypath->getNMember()*5),Form("p%d",fdecaypath->getNMember()*5),1,0,2);
@@ -291,13 +313,13 @@ void unbinfit::initFitParameters()
     std::ifstream infile(finputEffParms);
     Int_t nlinesread = 0;
     Double_t be,b1ne,b2ne,n1n2ne;
-    Double_t err_be,err_b1ne,err_b2ne,err_n1n2ne;
+    Double_t err_be,err_b1ne,err_b2ne,err_n1n2ne, err_n1n2ne_hi;
     Int_t isvary_be,isvary_b1ne,isvary_b2ne,isvary_n1n2ne;
     while (std::getline(infile, line))
     {
         std::istringstream iss(line);
         if (line[0]=='#') continue;
-        if (!(iss >> be >> err_be >> b1ne >> err_b1ne >> b2ne >> err_b2ne >> n1n2ne >> err_n1n2ne)) break;
+        if (!(iss >> be >> err_be >> b1ne >> err_b1ne >> b2ne >> err_b2ne >> n1n2ne >> err_n1n2ne>>err_n1n2ne_hi)) break;
         nlinesread++;
     }
 
@@ -307,12 +329,12 @@ void unbinfit::initFitParameters()
     if (n1n2ne<0){isvary_n1n2ne=1;n1n2ne=-n1n2ne;}else{isvary_n1n2ne=0;}
 
     std::cout<<"read-in efficiency factors:"<<std::endl;
-    std::cout<<be<<"\t"<<err_be<<"\t"<<b1ne<<"\t"<<err_b1ne<<"\t"<<b2ne<<"\t"<<err_b2ne<<"\t"<<n1n2ne<<"\t"<<err_n1n2ne<<"\t"<<std::endl;
+    std::cout<<be<<"\t"<<err_be<<"\t"<<b1ne<<"\t"<<err_b1ne<<"\t"<<b2ne<<"\t"<<err_b2ne<<"\t"<<n1n2ne<<"\t"<<err_n1n2ne<<"\t"<<err_n1n2ne_hi<<"\t"<<std::endl;
 
-    p[fdecaypath->getNMember()*5+4]=new RooRealVar(Form("p%d",fdecaypath->getNMember()*5+4),Form("p%d",fdecaypath->getNMember()*5+4),be,be-10*err_be,be+10*err_be);
-    p[fdecaypath->getNMember()*5+5]=new RooRealVar(Form("p%d",fdecaypath->getNMember()*5+5),Form("p%d",fdecaypath->getNMember()*5+5),b1ne,b1ne-10*err_b1ne,b1ne+10*err_b1ne);
-    p[fdecaypath->getNMember()*5+6]=new RooRealVar(Form("p%d",fdecaypath->getNMember()*5+6),Form("p%d",fdecaypath->getNMember()*5+6),b2ne,b2ne-10*err_b2ne,b2ne+10*err_b2ne);
-    p[fdecaypath->getNMember()*5+7]=new RooRealVar(Form("p%d",fdecaypath->getNMember()*5+7),Form("p%d",fdecaypath->getNMember()*5+7),n1n2ne,n1n2ne-10*err_n1n2ne,n1n2ne+10*err_n1n2ne);
+    p[fdecaypath->getNMember()*5+4]=new RooRealVar(Form("p%d",fdecaypath->getNMember()*5+4),Form("p%d",fdecaypath->getNMember()*5+4),be,0,1);
+    p[fdecaypath->getNMember()*5+5]=new RooRealVar(Form("p%d",fdecaypath->getNMember()*5+5),Form("p%d",fdecaypath->getNMember()*5+5),b1ne,0,1);
+    p[fdecaypath->getNMember()*5+6]=new RooRealVar(Form("p%d",fdecaypath->getNMember()*5+6),Form("p%d",fdecaypath->getNMember()*5+6),b2ne,0,1);
+    p[fdecaypath->getNMember()*5+7]=new RooRealVar(Form("p%d",fdecaypath->getNMember()*5+7),Form("p%d",fdecaypath->getNMember()*5+7),n1n2ne,0,1);
     pvar[fdecaypath->getNMember()*5+4]=(RooRealVar*) p[fdecaypath->getNMember()*5+4];
     pvar[fdecaypath->getNMember()*5+5]=(RooRealVar*) p[fdecaypath->getNMember()*5+5];
     pvar[fdecaypath->getNMember()*5+6]=(RooRealVar*) p[fdecaypath->getNMember()*5+6];
@@ -320,7 +342,15 @@ void unbinfit::initFitParameters()
     pvar[fdecaypath->getNMember()*5+4]->setError(err_be);
     pvar[fdecaypath->getNMember()*5+5]->setError(err_b1ne);
     pvar[fdecaypath->getNMember()*5+6]->setError(err_b2ne);
-    pvar[fdecaypath->getNMember()*5+7]->setError(err_n1n2ne);
+    if (err_n1n2ne<0){
+        pvar[fdecaypath->getNMember()*5+7]->setError(-err_n1n2ne);
+        pvar[fdecaypath->getNMember()*5+7]->setAsymError(-err_n1n2ne,err_n1n2ne_hi);
+        pvar[fdecaypath->getNMember()*5+7]->SetTitle((char*)"-");
+    }else{
+        pvar[fdecaypath->getNMember()*5+7]->setError(err_n1n2ne);
+        pvar[fdecaypath->getNMember()*5+7]->setAsymError(err_n1n2ne,err_n1n2ne_hi);
+    }
+
 
     if (isvary_be==0) pvar[fdecaypath->getNMember()*5+4]->setConstant(kTRUE);
     if (isvary_b1ne==0) pvar[fdecaypath->getNMember()*5+5]->setConstant(kTRUE);
@@ -334,7 +364,10 @@ void unbinfit::initFitParameters()
     nnsig=nnsig-nnbkg;
 
     nbkg=new RooRealVar("nbkg","nbkg",nnbkg,nnbkg/3,nnbkg*3);
-    nsig=new RooRealVar("nsig","nsig",nnsig,nnsig*0.5,nnsig*1.5);
+    nsig=new RooRealVar("nsig","nsig",nnsig,nnsig/5,nnsig*5);
+    //nsig=new RooRealVar("nsig","nsig",1.4751e+04,1.2751e+04,1.6751e+04);
+
+    cout<<"NSIG = "<<nnsig<<endl;
     nbkg->setError(TMath::Sqrt(nnbkg));
 }
 
@@ -391,7 +424,6 @@ void unbinfit::setExernalContrainFit()
         if (fdecaypath->getMember(i)->is_population_ratio_fix==2)
             pvar[fdecaypath->getNMember()*3+i]->setConstant(kTRUE);
         if (fdecaypath->getMember(i)->is_neueff_fix==2){
-            //cout<<"EEEEE "<<fdecaypath->getMember(i)->neueff<<endl;
             pvar[fdecaypath->getNMember()*4+i]->setConstant(kTRUE);
         }
     }
@@ -503,6 +535,9 @@ void unbinfit::bookOutputTree()
     foutputtree->Branch("fitNumInvalidNLL",&fitNumInvalidNLL,"fitNumInvalidNLL/I");
     foutputtree->Branch("fitEdm",&fitEdm,"fitEdm/D");
     foutputtree->Branch("fitMinNll",&fitMinNll,"fitMinNll/D");
+    foutputtree->Branch("chiSquareNDF",&chiSquareNDF,"chiSquareNDF/D");
+    foutputtree->Branch("chiSquareNDF1n",&chiSquareNDF1n,"chiSquareNDF1n/D");
+    foutputtree->Branch("chiSquareNDF2n",&chiSquareNDF2n,"chiSquareNDF2n/D");
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -611,19 +646,55 @@ void unbinfit::setValParameters()
 void unbinfit::generateMC()
 {
     for (int i=0;i<fdecaypath->getNMember()*5+8;i++){
-        if ((pvar[i]->isConstant())&&pValError[i]!=0) pVal[i]=rseed->Gaus(pCentralVal[i],pValError[i]);
-        else pVal[i]=pCentralVal[i];
+        if ((pvar[i]->isConstant())&&pValError[i]!=0) {
+            if(i>=fdecaypath->getNMember()*4&&i<fdecaypath->getNMember()*5){//neutron efficiency parameter
+                if (strcmp(pvar[i]->GetTitle(),(char*)"-")==0){//generate uniform random distribution from mean-error_low to mean+error_high
+                    pVal[i]=pCentralVal[i]-pValError[i]+rseed->Rndm()*((pCentralVal[i]+fdecaypath->getMember(i-fdecaypath->getNMember()*4)->neuefferrhi)-(pCentralVal[i]-pValError[i]));
+                }else{// Special function for Asymetric error
+                    pVal[i]=rseedA->generate(pCentralVal[i],pValError[i],fdecaypath->getMember(i-fdecaypath->getNMember()*4)->neuefferrhi);
+                }
+            }else{//other parameters
+                if (i<fdecaypath->getNMember()*3){//HL, P1n and P2n errors
+                    pVal[i]=rseedA->generate(pCentralVal[i],pValError[i],pValErrorHi[i]);
+                    //cout<<pCentralVal[i]<<"\t"<<pValError[i]<<"\t"<<pValErrorHi[i]<<endl;
+                }else{
+                    if (strcmp(pvar[i]->GetTitle(),(char*)"-")==0){//generate uniform random distribution
+                        if (i==fdecaypath->getNMember()*5+7)//2n efficiency of parent
+                            pVal[i]=pCentralVal[i]-pValError[i]+rseed->Rndm()*(pValError[i]+pvar[i]->getAsymErrorHi());
+                        else
+                            pVal[i]=pCentralVal[i]-pValError[i]+rseed->Rndm()*pValError[i]*2;
+                    }else{
+                        if (i==fdecaypath->getNMember()*5+7){//2n efficiency of parent
+                            pVal[i]=rseedA->generate(pCentralVal[i],pValError[i],pvar[i]->getAsymErrorHi());
+                        }else{
+                            pVal[i]=rseedA->generate(pCentralVal[i],pValError[i]);
+                        }
+                    }
+                }
+            }
+        }else{
+            pVal[i]=pCentralVal[i];
+        }
 
-#ifdef PARENT_NEUEFF_UNIFORM
-        //! neueff of parent randomly distributed from 40 to 68%
-        if (i==fdecaypath->getNMember()*4) pVal[i]=0.4+rseed->Rndm()*(0.68-0.4);
-#endif
+//#ifdef PARENT_NEUEFF_UNIFORM
+//        //! neueff of parent randomly distributed from 40 to 68%
+//        if (i==fdecaypath->getNMember()*4) pVal[i]=fmineffMC+rseed->Rndm()*(fmaxeffMC-fmineffMC);
+//#endif
     }
     nsigVal=nsigCentralVal;//reset central parameters after 1 fit
 
-    nbkgVal=rseed->Gaus(nbkgCentralVal,nbkgError);
-    bkg1nratioVal=rseed->Gaus(bkg1nratioCentralVal,bkg1nratioError);
-    bkg2nratioVal=rseed->Gaus(bkg2nratioCentralVal,bkg2nratioError);
+
+//    nbkgVal = nbkgCentralVal;
+//    bkg1nratioVal = bkg1nratioCentralVal;
+//    bkg2nratioVal = bkg2nratioCentralVal;
+    //nbkgVal=rseed->Gaus(nbkgCentralVal,nbkgError);
+    //bkg1nratioVal=rseed->Gaus(bkg1nratioCentralVal,bkg1nratioError);
+    //bkg2nratioVal=rseed->Gaus(bkg2nratioCentralVal,bkg2nratioError);
+    if (nbkgError>0&&bkg1nratioError>0&&bkg2nratioError>0){
+        nbkgVal=rseedA->generate(nbkgCentralVal,nbkgError);
+        bkg1nratioVal=rseedA->generate(bkg1nratioCentralVal,bkg1nratioError);
+        bkg2nratioVal=rseedA->generate(bkg2nratioCentralVal,bkg2nratioError);
+    }
 
     slope1posVal=slope1posCentralVal;
     slope2posVal=slope2posCentralVal;
@@ -632,16 +703,24 @@ void unbinfit::generateMC()
     //slope2posVal=rseed->Gaus(slope2posCentralVal,slope2posError);
     //slope3posVal=rseed->Gaus(slope3posCentralVal,slope3posError);
 
+    //slope1posVal=rseedA->generate(slope1posCentralVal,slope1posError);
+    //slope2posVal=rseedA->generate(slope2posCentralVal,slope2posError);
+    //slope3posVal=rseedA->generate(slope3posCentralVal,slope3posError);
 
     //! for binfit
-    //no variation background for now
-
     //binfitbkgparms[0]=rseed->Gaus(fB_bkgpos->GetParameter(0),fB_bkgneg->GetParError(0));
+    //binfitbkgparms[2]=rseed->Gaus(fSB_bkgpos->GetParameter(0),fSB_bkgneg->GetParError(0));
+    //binfitbkgparms[4]=rseed->Gaus(fSB2_bkgpos->GetParameter(0),fSB2_bkgneg->GetParError(0));
     //binfitbkgparms[1]=rseed->Gaus(fB_bkgpos->GetParameter(1),fB_bkgneg->GetParError(1));
-    //binfitbkgparms[2]=rseed->Gaus(fSB_bkgpos->GetParameter(0),fB_bkgneg->GetParError(0));
-    //binfitbkgparms[3]=rseed->Gaus(fSB_bkgpos->GetParameter(1),fB_bkgneg->GetParError(1));
-    //binfitbkgparms[4]=rseed->Gaus(fSB2_bkgpos->GetParameter(0),fB_bkgneg->GetParError(0));
-    //binfitbkgparms[5]=rseed->Gaus(fSB2_bkgpos->GetParameter(1),fB_bkgneg->GetParError(1));
+    //binfitbkgparms[3]=rseed->Gaus(fSB_bkgpos->GetParameter(1),fSB_bkgneg->GetParError(1));
+    //binfitbkgparms[5]=rseed->Gaus(fSB2_bkgpos->GetParameter(1),fSB2_bkgneg->GetParError(1));
+
+    binfitbkgparms[0]=rseedA->generate(fB_bkgpos->GetParameter(0),fB_bkgneg->GetParError(0));
+    binfitbkgparms[2]=rseedA->generate(fSB_bkgpos->GetParameter(0),fSB_bkgneg->GetParError(0));
+    binfitbkgparms[4]=rseedA->generate(fSB2_bkgpos->GetParameter(0),fSB2_bkgneg->GetParError(0));
+//    binfitbkgparms[1]=rseedA->generate(fB_bkgpos->GetParameter(1),fB_bkgneg->GetParError(1));
+//    binfitbkgparms[3]=rseedA->generate(fSB_bkgpos->GetParameter(1),fSB_bkgneg->GetParError(1));
+//    binfitbkgparms[5]=rseedA->generate(fSB2_bkgpos->GetParameter(1),fSB2_bkgneg->GetParError(1));
 }
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
@@ -799,8 +878,9 @@ void unbinfit::plotResults()
     fSB2->FixParameter(fdecaypath->getNMember()*5+8,b2);
     fSB2->FixParameter(fdecaypath->getNMember()*5+9,a2);
 
-
     model0nCurve->Fit(fB,"LEQR","goff");
+    model0nCurve->GetFunction("fB")->SetLineWidth(0);
+
     //fB->FixParameter(fdecaypath->getNMember()*5,nsig_hB_firstbin);
     fSB->FixParameter(fdecaypath->getNMember()*5,fB->GetParameter(fdecaypath->getNMember()*5));
     fSB2->FixParameter(fdecaypath->getNMember()*5,fB->GetParameter(fdecaypath->getNMember()*5));
@@ -841,7 +921,8 @@ void unbinfit::writeResults()
             ofs<<i<<"\t"<<pvar[i]->getVal()<<"\t"<<pvar[i]->getError()<<std::endl;
     }
     ofs<<"nsig = "<<nsig->getVal()<<"\tnbkg = "<<nbkg->getVal()<<std::endl;
-    ofs<<"chisquare/NDF = "<<chiSquareNDF<<std::endl;
+    ofs<<"chisquare/NDF = "<<chiSquareNDF<<"\t"<<chiSquareNDF1n<<"\t"<<chiSquareNDF2n<<std::endl;
+    ofs<<"FitTime = "<<fFitTime<<endl;
     fitres->Print();
     std::cout<<"Time for MC generation = "<<fMCGenTime<<std::endl;
     std::cout<<"Time for Fitting = "<<fFitTime<<std::endl;
@@ -949,27 +1030,22 @@ void unbinfit::RunBinFit()
    fitter.Result().Print(std::cout);
    const Double_t* resultparcenter=fitter.Result().GetParams();
    const Double_t* resulterrcenter=fitter.Result().GetErrors();
+
+   Int_t nfreeparms = 0;
    for (Int_t i=0;i<fdecaypath->getNMember()*5+8;i++){
        pVal[i]=resultparcenter[i];
-       if (!pvar[i]->isConstant())
+       if (!pvar[i]->isConstant()){
         pValError[i]=resulterrcenter[i];
+        nfreeparms++;
+       }
    }
+
    fitStatus=fitter.Result().Status();
-   fitCovQual=fitter.Result().Ndf();
+   fitCovQual=nfreeparms+1;//fitter.Result().Ndf();
    fitNumInvalidNLL=fitter.Result().NCalls();
    fitEdm=fitter.Result().Edm();
    fitMinNll=fitter.Result().MinFcnValue();   
-   foutputtree->Fill();
-
-
-   char tempstr[500];
-   sprintf(tempstr,"%s.txt",foutputData);
-   std::ofstream ofs(tempstr,std::ios::app);
-   for (int i=0;i<fdecaypath->getNMember()*5+8;i++){
-       if (!pvar[i]->isConstant())
-           ofs<<i<<"\t"<<pVal[i]<<"\t"<<pValError[i]<<std::endl;
-   }
-
+   //foutputtree->Fill();
 
    //! construct parent/daugters decay components for plotting demonstration
    fB_parent=new TF1("fB_parent",totdecaymodel,&fitF::fcndecay_parent,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay_parent");
@@ -997,8 +1073,15 @@ void unbinfit::RunBinFit()
    hSB2->Write();
    plotResultsMore(1);
 
-   ofs<<"chisquare/NDF = "<<chiSquareNDF<<std::endl;
-
+   char tempstr[500];
+   sprintf(tempstr,"%s.txt",foutputData);
+   std::ofstream ofs(tempstr,std::ios::app);
+   for (int i=0;i<fdecaypath->getNMember()*5+8;i++){
+       if (!pvar[i]->isConstant())
+           ofs<<i<<"\t"<<pVal[i]<<"\t"<<pValError[i]<<std::endl;
+   }
+   ofs<<"nsig = "<<pVal[fdecaypath->getNMember()*5]<<"\tnbkg = "<<fdecaypath->getNMember()*5+8<<std::endl;
+   ofs<<"chisquare/NDF = "<<chiSquareNDF<<"\t"<<chiSquareNDF1n<<"\t"<<chiSquareNDF2n<<std::endl;
    for (int i=0;i<fnMC;i++){
        generateMC();
        setValParameters();
@@ -1009,16 +1092,20 @@ void unbinfit::RunBinFit()
        const Double_t* resulterr=fitter.Result().GetErrors();
 
        //const Double_t* resulterr=fitter.Result().GetErrors();
+       Int_t nfreeparms = 0;
        for (Int_t i=0;i<fdecaypath->getNMember()*5+8;i++){
            pVal[i]=resultpar[i];
-           if (!pvar[i]->isConstant())
-            pValError[i]=resulterr[i];
+           if (!pvar[i]->isConstant()){
+                pValError[i]=resulterr[i];
+                nfreeparms++;
+           }
        }
        fitStatus=fitter.Result().Status();
-       fitCovQual=fitter.Result().Ndf();
+       fitCovQual=nfreeparms+1;//fitter.Result().Ndf();
        fitNumInvalidNLL=fitter.Result().NCalls();
        fitEdm=fitter.Result().Edm();
        fitMinNll=fitter.Result().MinFcnValue();
+       calculateChiSquare(1);
        foutputtree->Fill();
    }
    writeOutputTree();
@@ -1100,7 +1187,92 @@ void unbinfit::writeFitComponents()
     fSB2_c134->Write();
 }
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+void unbinfit::calculateChiSquare(Int_t opt){
+    Double_t chisquare = 0;
+    Double_t chisquare1n = 0;
+    Double_t chisquare2n = 0;
+    //! 0n
+    if (opt==0){
+        for (Int_t i=0;i<model0nHist->GetN();i++){
+            Double_t xi=model0nHist->GetX()[i];
+            Double_t yi=model0nHist->GetY()[i];
+            Double_t yeval=model0nCurve->Eval(xi);
+            Double_t chisquarei=yeval-yi+yi*TMath::Log(yi/yeval);
+            chisquare+=chisquarei;
+        }
+        chisquare=2*chisquare;
+        chiSquareNDF=chisquare/(model0nHist->GetN()+fitres->floatParsFinal().getSize());
+    }else{
+        Int_t k=0;
+        for (Int_t i=0;i<hB->GetNbinsX();i++){
+            Double_t xi=hB->GetBinCenter(i+1);
+            Double_t yi=hB->GetBinContent(i+1);
+            if (xi>p_deadtime){
+                Double_t yeval=fB->Eval(xi);
+                Double_t chisquarei=yeval-yi+yi*TMath::Log(yi/yeval);
+                chisquare+=chisquarei;
+                k++;
+            }
+        }
+        chisquare=2*chisquare;
+        chiSquareNDF=chisquare/(k+fitCovQual);
+    }
 
+    //!1n
+    if (opt==0){
+        for (Int_t i=0;i<model1nHist->GetN();i++){
+            Double_t xi=model1nHist->GetX()[i];
+            Double_t yi=model1nHist->GetY()[i];
+            Double_t yeval=model1nCurve->Eval(xi);
+            Double_t chisquarei=yeval-yi+yi*TMath::Log(yi/yeval);
+            chisquare1n+=chisquarei;
+        }
+        chisquare1n=2*chisquare1n;
+        chiSquareNDF1n=chisquare1n/(model1nHist->GetN()+fitres->floatParsFinal().getSize());
+    }else{
+        Int_t k=0;
+        for (Int_t i=0;i<hSB->GetNbinsX();i++){
+            Double_t xi=hSB->GetBinCenter(i+1);
+            Double_t yi=hSB->GetBinContent(i+1);
+            if (xi>p_deadtime){
+                Double_t yeval=fSB->Eval(xi);
+                Double_t chisquarei=yeval-yi+yi*TMath::Log(yi/yeval);
+                chisquare1n+=chisquarei;
+                k++;
+            }
+        }
+        chisquare1n=2*chisquare1n;
+        chiSquareNDF1n=chisquare1n/(k+fitCovQual);
+    }
+
+    //!2n
+    if (opt==0){
+        for (Int_t i=0;i<model2nHist->GetN();i++){
+            Double_t xi=model2nHist->GetX()[i];
+            Double_t yi=model2nHist->GetY()[i];
+            Double_t yeval=model2nCurve->Eval(xi);
+            Double_t chisquarei=yeval-yi+yi*TMath::Log(yi/yeval);
+            chisquare2n+=chisquarei;
+        }
+        chisquare2n=2*chisquare2n;
+        chiSquareNDF2n=chisquare2n/(model2nHist->GetN()+fitres->floatParsFinal().getSize());
+    }else{
+        Int_t k=0;
+        for (Int_t i=0;i<hSB2->GetNbinsX();i++){
+            Double_t xi=hSB2->GetBinCenter(i+1);
+            Double_t yi=hSB2->GetBinContent(i+1);
+            if (xi>p_deadtime){
+                Double_t yeval=fSB2->Eval(xi);
+                Double_t chisquarei=yeval-yi+yi*TMath::Log(yi/yeval);
+                chisquare2n+=chisquarei;
+                k++;
+            }
+        }
+        chisquare2n=2*chisquare2n;
+        chiSquareNDF2n=chisquare2n/(k+fitCovQual);
+    }
+}
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 void unbinfit::calculateUpperLimit()
 {
     //! write P1n,P2n and P3n upper limit
@@ -1132,7 +1304,9 @@ void unbinfit::calculateUpperLimit()
             treeb->Draw("",Form("x>%f&&x<%f&&y==3",p_deadtime,p_timerange),"goff")-
             treeb->Draw("",Form("x>%f&&x<%f&&y==3",-p_timerange,-p_deadtime),"goff");
 
-    ofs<<N0b<<"\t"<<N0b1n<<"\t"<<N0b2n<<"\t"<<N0b3n<<"\t"<<N0b1n_bkg<<"\t"<<N0b2n_bkg<<"\t"<<N0b3n_bkg<<endl;
+    ofs<<N0b<<"\t"<<N0b1n<<"\t"<<N0b2n<<"\t"<<N0b3n<<"\t"<<N0b1n_bkg<<"\t"<<N0b2n_bkg<<"\t"<<
+         N0b3n_bkg<<"\t"<<pVal[fdecaypath->getNMember()*4]<<"\t"<<pValError[fdecaypath->getNMember()*4]<<"\t"<<
+      pVal[fdecaypath->getNMember()*5+7]<<"\t"<<pValError[fdecaypath->getNMember()*5+7]<<endl;
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -1202,10 +1376,6 @@ void unbinfit::plotResultsMore(Int_t opt)
     fB_bkgneg->Draw("same");
     pad1_c0n->Draw();
 
-
-
-
-
     pad2_c0n->cd();
     //!Calculate and residual plot - X2/ndf
     Double_t chisquare=0;
@@ -1230,7 +1400,7 @@ void unbinfit::plotResultsMore(Int_t opt)
         }
         chisquare=2*chisquare;
         cout<<"ndf="<<fitres->floatParsFinal().getSize()<<endl;
-        chiSquareNDF=chisquare/(nbinsHB*2+fitres->floatParsFinal().getSize());
+        chiSquareNDF=chisquare/(model0nHist->GetN()+fitres->floatParsFinal().getSize());
         cout<<"chisquare/ndf="<<chiSquareNDF<<endl;
         resplot_0n=new TGraphErrors(model0nHist->GetN(),xres,yres,0,yreserr);
         for (Int_t i=0;i<modelbkg0nHist->GetN();i++){
@@ -1262,7 +1432,7 @@ void unbinfit::plotResultsMore(Int_t opt)
         chisquare=2*chisquare;
         cout<<"k="<<k<<endl;
         cout<<"ndf="<<fitCovQual<<endl;
-        chiSquareNDF=chisquare/(fitCovQual);
+        chiSquareNDF=chisquare/(k+fitCovQual);
         cout<<"chisquare/ndf="<<chiSquareNDF<<endl;
         resplot_0n=new TGraphErrors(k,xres,yres,0,yreserr);
         k=0;
@@ -1393,7 +1563,11 @@ void unbinfit::plotResultsMore(Int_t opt)
             Double_t chisquarei=yeval-yi+yi*TMath::Log(yi/yeval);
             chisquare1n+=chisquarei;
         }
-        cout<<"chisquare1n="<<chisquare1n<<endl;
+        chisquare1n=2*chisquare1n;
+        cout<<"ndf="<<fitres->floatParsFinal().getSize()<<endl;
+        chiSquareNDF1n=chisquare1n/(model1nHist->GetN()+fitres->floatParsFinal().getSize());
+        cout<<"chisquare/ndf="<<chiSquareNDF1n<<endl;
+
         resplot_1n=new TGraphErrors(model1nHist->GetN(),xres,yres,0,yreserr);
         for (Int_t i=0;i<modelbkg1nHist->GetN();i++){
             Double_t xi=modelbkg1nHist->GetX()[i];
@@ -1421,9 +1595,10 @@ void unbinfit::plotResultsMore(Int_t opt)
                 k++;
             }
         }
-        cout<<"chisquare1n="<<chisquare1n<<endl;
+        chisquare1n=2*chisquare1n;
+        chiSquareNDF1n=chisquare1n/(k+fitCovQual);
+        cout<<"chisquare/NDF 1n="<<chiSquareNDF1n<<endl;
         resplot_1n=new TGraphErrors(k,xres,yres,0,yreserr);
-
         k=0;
         for (Int_t i=0;i<hSB->GetNbinsX();i++){
            Double_t xi=hSB->GetBinCenter(i+1);
@@ -1549,6 +1724,8 @@ void unbinfit::plotResultsMore(Int_t opt)
             Double_t chisquarei=yeval-yi+yi*TMath::Log(yi/yeval);
             chisquare2n+=chisquarei;
         }
+        chisquare2n=2*chisquare2n;
+        chiSquareNDF2n=chisquare2n/(model2nHist->GetN()+fitres->floatParsFinal().getSize());
         resplot_2n=new TGraphErrors(model2nHist->GetN(),xres,yres,0,yreserr);
         for (Int_t i=0;i<modelbkg2nHist->GetN();i++){
             Double_t xi=modelbkg2nHist->GetX()[i];
@@ -1576,6 +1753,9 @@ void unbinfit::plotResultsMore(Int_t opt)
                 k++;
             }
         }
+        chisquare2n=2*chisquare2n;
+        chiSquareNDF2n=chisquare2n/(k+fitCovQual);
+        cout<<"chisquare/NDF 2n="<<chiSquareNDF2n<<endl;
         resplot_2n=new TGraphErrors(k,xres,yres,0,yreserr);
         k=0;
         for (Int_t i=0;i<hSB2->GetNbinsX();i++){
@@ -1652,6 +1832,7 @@ void unbinfit::Run()
         printCurrentParameters();
         doFit();
         writeResultsMC();
+        calculateChiSquare();
     }
     writeOutputTree();
     closeOutputFile();
@@ -1670,6 +1851,10 @@ void unbinfit::generateRoofitEvaluate()
         for (int j=0;j<fpath->ndecay[i];j++){
             pathfile>>fpath->decaymap[i][j]>>fpath->nneu[i][j];
         }
+    }
+    pathfile>>fpath->nisomers;
+    for (int i=0;i<fpath->nisomers;i++){
+        pathfile>>fpath->isomer_gs_index[i]>>fpath->isomer_ex_index[i];
     }
     pathfile.close();
 
@@ -1706,7 +1891,11 @@ void unbinfit::generateRoofitEvaluate()
     for (Int_t k=0;k<fpath->nri;k++){
         ofnc<<"double ne"<<k<<"=(*p["<<k+fpath->nri*4<<"]);"<<std::endl;
     }
-
+#ifdef ISOMER_SUM_UNITY
+    for (Int_t i=0;i<fpath->nisomers;i++){
+        ofnc<<"py"<<fpath->isomer_ex_index[i]<<"=1-py"<<fpath->isomer_gs_index[i]<<";"<<std::endl;
+    }
+#endif
     ofnc<<"double be=*p["<<fpath->nri*5+4<<"];"<<std::endl;
     ofnc<<"double b1ne=*p["<<fpath->nri*5+5<<"];"<<std::endl;
     ofnc<<"double b2ne=*p["<<fpath->nri*5+6<<"];"<<std::endl;

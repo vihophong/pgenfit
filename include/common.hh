@@ -24,10 +24,10 @@
 
 #define EVAL_FAST
 #define PATHFLOW
-//set if you wish parent neutron efficiency to be distributed from 40 to 68%
-#define PARENT_NEUEFF_UNIFORM
+//set if you wish parent neutron efficiency to be distributed uniformly when error value is negative
+//#define PARENT_NEUEFF_UNIFORM
 
-#define ENTRYLIMIT -5000 //set negative for not limiting the entries by default
+#define ENTRYLIMIT -1200000 //set negative for not limiting the entries by default
 #define STARTFIT 0.08
 
 // set if production rate of isiomeric state equal 1
@@ -66,6 +66,12 @@ typedef struct {
     Double_t decay_p1nerr;
     Double_t decay_p2nerr;
 
+    Double_t decay_hlerrhi;
+    Double_t decay_lamdaerrhi;
+    Double_t decay_p0nerrhi;
+    Double_t decay_p1nerrhi;
+    Double_t decay_p2nerrhi;
+
     Double_t decay_hlup;
     Double_t decay_lamdaup;
     Double_t decay_p0nup;
@@ -86,6 +92,7 @@ typedef struct {
 
     Double_t neueff;
     Double_t neuefferr;
+    Double_t neuefferrhi;
     Double_t neueffup;
     Double_t neuefflow;
 

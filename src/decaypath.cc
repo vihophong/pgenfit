@@ -91,6 +91,7 @@ void decaypath::ProcessMember(MemberDef *obj)
     // convert half-life into activity
     obj->decay_lamda=log(2)/obj->decay_hl;
     obj->decay_lamdaerr=log(2)/obj->decay_hl/obj->decay_hl*obj->decay_hlerr;
+    obj->decay_lamdaerrhi=log(2)/obj->decay_hl/obj->decay_hl*obj->decay_hlerrhi;
     obj->decay_lamdalow=log(2)/obj->decay_hlup;
     obj->decay_lamdaup=log(2)/obj->decay_hllow;
     obj->is_decay_lamda_fix=obj->is_decay_hl_fix;
@@ -126,11 +127,13 @@ void decaypath::ProcessMember(MemberDef *obj)
     // convert pn in % to pn in 1
     obj->decay_p1n=obj->decay_p1n/100;
     obj->decay_p1nerr=obj->decay_p1nerr/100;
+    obj->decay_p1nerrhi=obj->decay_p1nerrhi/100;
     obj->decay_p1nlow=obj->decay_p1nlow/100;
     obj->decay_p1nup=obj->decay_p1nup/100;
 
     obj->decay_p2n=obj->decay_p2n/100;
     obj->decay_p2nerr=obj->decay_p2nerr/100;
+    obj->decay_p2nerrhi=obj->decay_p2nerrhi/100;
     obj->decay_p2nlow=obj->decay_p2nlow/100;
     obj->decay_p2nup=obj->decay_p2nup/100;
 
@@ -160,6 +163,12 @@ void decaypath::CopyMember(MemberDef *source, MemberDef *destination)
     destination-> decay_p1nerr = source->  decay_p1nerr;
     destination-> decay_p2nerr = source->  decay_p2nerr;
 
+    destination-> decay_hlerrhi = source->  decay_hlerrhi;
+    destination-> decay_lamdaerrhi = source->  decay_lamdaerrhi;
+    destination-> decay_p0nerrhi = source->  decay_p0nerrhi;
+    destination-> decay_p1nerrhi = source->  decay_p1nerrhi;
+    destination-> decay_p2nerrhi = source->  decay_p2nerrhi;
+
     destination-> decay_hlup = source->  decay_hlup;
     destination-> decay_lamdaup = source->  decay_lamdaup;
     destination-> decay_p0nup = source->  decay_p0nup;
@@ -179,6 +188,7 @@ void decaypath::CopyMember(MemberDef *source, MemberDef *destination)
 
     destination-> neueff = source->  neueff;
     destination-> neuefferr = source->  neuefferr;
+    destination-> neuefferrhi = source->  neuefferrhi;
     destination-> neueffup = source->  neueffup;
     destination-> neuefflow = source->  neuefflow;
 
@@ -273,10 +283,10 @@ void decaypath::makePath()
         obj->is_population_ratio_fix = 2;
 
         //! read info with isomer
-        if (!(iss >> obj->name >> obj->z >> a >> obj->decay_hl >> obj->decay_hlerr >> obj->decay_hllow >> obj->decay_hlup >>
-              obj->decay_p1n >> obj->decay_p1nerr >> obj->decay_p1nlow >> obj->decay_p1nup >>
-              obj->decay_p2n >> obj->decay_p2nerr >> obj->decay_p2nlow >> obj->decay_p2nup >>
-              obj->neueff >> obj->neuefferr >> obj->neuefflow >> obj->neueffup)) break;
+        if (!(iss >> obj->name >> obj->z >> a >> obj->decay_hl >> obj->decay_hlerr >> obj->decay_hlerrhi >> obj->decay_hllow >> obj->decay_hlup >>
+              obj->decay_p1n >> obj->decay_p1nerr >> obj->decay_p1nerrhi >> obj->decay_p1nlow >> obj->decay_p1nup >>
+              obj->decay_p2n >> obj->decay_p2nerr >> obj->decay_p2nerrhi >> obj->decay_p2nlow >> obj->decay_p2nup >>
+              obj->neueff >> obj->neuefferr >> obj->neuefferrhi >> obj->neuefflow >> obj->neueffup)) break;
         obj->n=a-obj->z;
 
         obj->gspatner = -1;
@@ -290,10 +300,11 @@ void decaypath::makePath()
             CopyMember(obj,objisomer);
             objisomer->id = obj->id + 1;
             cout<<"ISOMER of "<<obj->name<<endl;
-            if (!(iss >> objisomer->population_ratio >> objisomer->population_ratioerr >> objisomer->population_ratiolow >> objisomer->population_ratioup >> objisomer->decay_hl >> objisomer->decay_hlerr >> objisomer->decay_hllow >> objisomer->decay_hlup >>
-                  objisomer->decay_p1n >> objisomer->decay_p1nerr >> objisomer->decay_p1nlow >> objisomer->decay_p1nup >>
-                  objisomer->decay_p2n >> objisomer->decay_p2nerr >> objisomer->decay_p2nlow >> objisomer->decay_p2nup >>
-                  objisomer->neueff >> objisomer->neuefferr >> objisomer->neuefflow >> objisomer->neueffup)) break;
+            if (!(iss >> objisomer->population_ratio >> objisomer->population_ratioerr >> objisomer->population_ratiolow >> objisomer->population_ratioup >>
+                  objisomer->decay_hl >> objisomer->decay_hlerr >> objisomer->decay_hlerrhi >> objisomer->decay_hllow >> objisomer->decay_hlup >>
+                  objisomer->decay_p1n >> objisomer->decay_p1nerr >> obj->decay_p1nerrhi >> objisomer->decay_p1nlow >> objisomer->decay_p1nup >>
+                  objisomer->decay_p2n >> objisomer->decay_p2nerr >> obj->decay_p2nerrhi >> objisomer->decay_p2nlow >> objisomer->decay_p2nup >>
+                  objisomer->neueff >> obj->neuefferr >> obj->neuefferrhi >> objisomer->neuefflow >> objisomer->neueffup)) break;
             obj->name = TString(tempstring.substr(0,tempstring.length()-1).data());
 
             if (objisomer->population_ratio>0){

@@ -10,7 +10,7 @@ project(main)
 list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS})
 
 #---Locate the ROOT package and defines a number of variables (e.g. ROOT_INCLUDE_DIRS)
-find_package(ROOT REQUIRED COMPONENTS Core RIO RooFit RooFitCore RooStats Hist Tree Matrix Physics MathCore Net)
+find_package(ROOT REQUIRED COMPONENTS Core RIO RooFit RooFitCore RooStats Hist Tree Matrix Physics MathCore Unuran Net)
 
 #---Define useful ROOT functions and macros (e.g. ROOT_GENERATE_DICTIONARY)
 include(${ROOT_USE_FILE})

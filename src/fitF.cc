@@ -94,6 +94,10 @@ ClassImp(fitF)
           py[i]=(*p[fpath->nri3+i]);
           ne[i]=(*p[fpath->nri4+i]);
       }
+#ifdef ISOMER_SUM_UNITY
+    // isomer
+    for (Int_t i=0;i<fpath->nisomers;i++) py[fpath->isomer_ex_index[i]]=1-py[fpath->isomer_gs_index[i]];
+#endif
       Double_t N0=*p[fpath->nri5]/ l[0];
 
 

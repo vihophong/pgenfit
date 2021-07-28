@@ -60,8 +60,9 @@
 #include "Math/WrappedMultiTF1.h"
 #include "HFitInterface.h"
 
+#include "asymGausRandom.hh"
 
-
+class asymGausRandom;
 
 class unbinfit
 {
@@ -72,6 +73,9 @@ class unbinfit
     void setInputEffParms(char* inputEffParms){sprintf(finputEffParms,"%s",inputEffParms);}
 
     void SetParameters();
+
+    void setMinEffMC(Double_t effin){fmineffMC = effin;}
+    void setMaxEffMC(Double_t effin){fmaxeffMC = effin;}
 
     void setOutputFile(char* outputData){sprintf(foutputData,"%s",outputData);}
     void setEntriesLimit(Long64_t entries){fnentrieslimit = entries;}
@@ -126,6 +130,7 @@ class unbinfit
 
  private:
     void setModel();
+    void calculateChiSquare(Int_t opt=0);
     void writeFitComponents();
     char* finputParms;
     char* finputData;
@@ -185,6 +190,8 @@ class unbinfit
 
     //! stuffs for MC generation
     TRandom3* rseed;
+    asymGausRandom* rseedA;
+
     Int_t seedno;
     Int_t fnMC;
     TTree* foutputtree;
@@ -192,6 +199,7 @@ class unbinfit
     Double_t pVal[kmaxparms];
     Double_t pCentralVal[kmaxparms];
     Double_t pValError[kmaxparms];
+    Double_t pValErrorHi[kmaxparms];
     Int_t ispVary[kmaxparms];
     Int_t ipVal[kmaxparms];
 
@@ -220,6 +228,8 @@ class unbinfit
     Double_t fitEdm;
     Double_t fitMinNll;
     Double_t chiSquareNDF;
+    Double_t chiSquareNDF1n;
+    Double_t chiSquareNDF2n;
 
     Double_t nsigVal;
     Double_t nsigCentralVal;
@@ -283,6 +293,8 @@ class unbinfit
     Double_t plotrangelow;
     Double_t plotrangehi;
 
+    Double_t fmineffMC;
+    Double_t fmaxeffMC;
 
     Double_t nsig_hB_firstbin;
     Double_t binfitparms[kmaxparms];

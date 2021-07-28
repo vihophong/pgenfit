@@ -42,10 +42,11 @@ int main(int argc, char *argv[])
         }
         ofs<<std::endl;
         fit->RunBinFit();
-    }else if(argc==8){
+    }else if(argc==9){
         unbinfit* fit=new unbinfit;
         fit->setStartTime(atof(argv[4]));
         fit->setNBinHists(atoi(argv[5]));
+        fit->SetRandomSeed(atoi(argv[8]));
         fit->Init(argv[1],argv[2]);
         fit->setOutputFile(argv[3]);
         fit->setNumberOfMC(atoi(argv[6]));
