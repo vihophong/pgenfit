@@ -1,0 +1,13 @@
+# Note should start from #, non-zero upper value indicate varying variable, half-life is in second
+# RI should be in the sequences of increasing Z and decreasing A for each isotropic row
+#Name	Z	A	Half-life	Abs_Error_Half-life Abs_Error_Half-life_Hi	lowerHL	upperHL	P1n	Abs_Error_P1n   Abs_Error_P1n_Hi	lowerP1n	upperP1n	P2n	Abs_Error_P2n   Abs_Error_P2n_Hi	lowerP2n	upperP2n	Neu.Eff	Neu.Eff Err	Neu.Eff ErrHi	lowerNeu.Eff	upperNeu.Eff    isomer_ratio	isomer_ratio_err	lower_isomer_ratio	upper_isomer_ratio  ...
+^{131}In	49	131	-0.27797	0.00638247	0.00645696	0.055594	1.38985	-2.8474	0.306719	0.171141	0	200	-25	0	0	0	200	0.644111	0.0273255	0.0204064	0	1
+^{131}Sn	50	131	56	0.5	0.5	11.2	280	0	0	0	0	200	0	0	0	0	200	0.646575	0.0193585	0.0193585	0	1
+^{130}Sn	50	130	223.2	4.2	4.2	44.64	1116	0	0	0	0	200	0	0	0	0	200	0.646575	0.0193585	0.0193585	0	1
+^{129}Sn	50	129	133.8	2.4	2.4	26.76	669	0	0	0	0	200	0	0	0	0	200	0.646575	0.0193585	0.0193585	0	1
+^{131}Sb	51	131	1381.8	2.4	2.4	276.36	6909	0	0	0	0	200	0	0	0	0	200	0.646575	0.0193585	0.0193585	0	1
+^{130}Sb	51	130	2370	48	48	474	11850	0	0	0	0	200	0	0	0	0	200	0.646575	0.0193585	0.0193585	0	1
+^{129}Sb	51	129	15717.6	93.6	93.6	3143.52	78588	0	0	0	0	200	0	0	0	0	200	0.646575	0.0193585	0.0193585	0	1
+^{131}Te	52	131	1500	6	6	300	7500	0	0	0	0	200	0	0	0	0	200	0.646575	0.0193585	0.0193585	0	1
+^{129}Te	52	129	4194	18	18	838.8	20970	0	0	0	0	200	0	0	0	0	200	0.646575	0.0193585	0.0193585	0	1
+^{131}I	53	131	693377	51.84	51.84	138675	3.46689e+06	0	0	0	0	200	0	0	0	0	200	0.646575	0.0193585	0.0193585	0	1

@@ -1,17 +1,16 @@
-# Note should start from #, non-zero upper value indicate varying variable, half-life is in second														
-# RI should be in the sequences of increasing Z and decreasing A for each isotropic row														
-#TimeToSec	1year	31556900	1day	86400	1hour	3600	1Min	60						
-#Name	Z	A	Half-life	Abs Error Half-life	lowerHL	upperHL	P1n	Abs Error P1n	lowerP1n	upperP1n	P2n	Abs Error P2n	lowerP2n	upperP2n	Neu.Eff	Neu.Eff Err	lowerNeu.Eff	upperNeu.Eff
+# Note should start from #, non-zero upper value indicate varying variable, half-life is in second
+# RI should be in the sequences of increasing Z and decreasing A for each isotropic row
+#Name	Z	A	Half-life	Abs_Error_Half-life Abs_Error_Half-life_Hi	lowerHL	upperHL	P1n	Abs_Error_P1n   Abs_Error_P1n_Hi	lowerP1n	upperP1n	P2n	Abs_Error_P2n   Abs_Error_P2n_Hi	lowerP2n	upperP2n	Neu.Eff	Neu.Eff Err	Neu.Eff ErrHi	lowerNeu.Eff	upperNeu.Eff    isomer_ratio	isomer_ratio_err	lower_isomer_ratio	upper_isomer_ratio  ...
 #Parent														
-In	49	134	-0.14	0.004	0.0296969	1.00000e+11	-50	0	0	100	-25	0	0	100	0.62	0.01	0	1
-#Z+1														
-Sn	50	134	1.05	0.011	0.105	10.5	17	13	0	100	0	0	0	100	0.62	0.01	0	1
-Sn	50	133	1.46	0.03	0.146	14.6	0.0294	0.0024	0	100	0	0	0	100	0.62	0.01	0	1
-Sn	50	132	39.7	0.8	3.97	397	0	0	0	100	0	0	0	100	0.62	0.01	0	1
-#Z+2														
-Sb	51	134	0.78	0.06	0.078	7.8	0	0	0	100	0	0	0	100	0.62	0.01	0	1
-Sb	51	133	140.4	3	14.04	1404	0	0	0	100	0	0	0	100	0.62	0.01	0	1
-Sb	51	132	167.4	4.2	16.74	1674	0	0	0	100	0	0	0	100	0.62	0.01	0	1
-#Z+3														
-Te	52	134	2508	48	250.8	25080	0	0	0	100	0	0	0	100	0.62	0.01	0	1
-Te	52	133	750	18	75	7500	0	0	0	100	0	0	0	100	0.62	0.01	0	1
+^{134}In	49	134	-0.136	0.005	0.005	0.0272	0.68	-65	32.5	32.5	0	200	-25	0	0	0	200	0.613025	0.0481437	0.032429	0	1
+#Z+1
+^{134}Sn	50	134	0.899	0.032	0.032	0.1798	4.495	17	13	13	0	200	0	0	0	0	200	0.642283	0.0291302	0.0206364	0	1
+^{133}Sn	50	133	1.42	0.06	0.06	0.284	7.1	0.0294	0.0024	0.0024	0	200	0	0	0	0	200	0.652234	0.019577	0.0196618	0	1
+^{132}Sn	50	132	39.7	0.8	0.8	7.94	198.5	0	0	0	0	200	0	0	0	0	200	0.646575	0.0193585	0.0193585	0	1
+#Z+2
+^{134}Sb	51	134	0.675	0.006	0.006	0.135	3.375	0	0	0	0	200	0	0	0	0	200	0.651997	0.0195747	0.0196094	0	1
+^{133}Sb	51	133	140.4	3	3	28.08	702	0	0	0	0	200	0	0	0	0	200	0.646575	0.0193585	0.0193585	0	1
+^{132}Sb	51	132	167.4	4.2	4.2	33.48	837	0	0	0	0	200	0	0	0	0	200	0.646575	0.0193585	0.0193585	0	1
+#Z+3
+^{134}Te	52	134	2508	48	48	501.6	12540	0	0	0	0	200	0	0	0	0	200	0.646575	0.0193585	0.0193585	0	1
+^{133}Te	52	133	750	18	18	150	3750	0	0	0	0	200	0	0	0	0	200	0.646575	0.0193585	0.0193585	0	1

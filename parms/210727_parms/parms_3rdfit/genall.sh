@@ -1,6 +1,6 @@
 #!/bin/bash
 #Sn isotopes
-root -b -q 'autogenparmsfile.C("Sn139parms.txt",138,50)'
+root -b -q 'autogenparmsfile.C("Sn139parms.txt",139,50)'
 root -b -q 'autogenparmsfile.C("Sn138parms.txt",138,50)'
 root -b -q 'autogenparmsfile.C("Sn137parms.txt",137,50)'
 root -b -q 'autogenparmsfile.C("Sn136parms.txt",136,50)'
