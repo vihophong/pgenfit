@@ -18,8 +18,8 @@
 
 #include "TTree.h"
 #include "TMath.h"
-#include "TUnuran.h"
-#include "TUnuranContDist.h"
+//#include "TUnuran.h"
+//#include "TUnuranContDist.h"
 #include "TF1.h"
 
 #include "RooRealVar.h"
@@ -35,11 +35,11 @@ public:
     virtual ~asymGausRandom();
     Double_t generate(Double_t meanVal, Double_t sigmaVal);
     Double_t generate(Double_t meanVal, Double_t sigmaLVal,Double_t sigmaRVal);
-    void SetSeed(Int_t seedno){unr->SetSeed(seedno);}
+//    void SetSeed(Int_t seedno){unr->SetSeed(seedno);}
     void Init(Int_t seedno);
 private:
-    TUnuran* unr;
-    TUnuranContDist* dist;
+//    TUnuran* unr;
+//    TUnuranContDist* dist;
     TF1* fAsymGaus;
     Double_t asymGausFcn(Double_t *x, Double_t *par);
 

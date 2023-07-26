@@ -16,7 +16,7 @@
 
 asymGausRandom::asymGausRandom()
 {
-    unr = new TUnuran;
+//    unr = new TUnuran;
     xx=new RooRealVar("xx","xx",5,40);
     mean=new RooRealVar("mean","mean",10,5,20);
     sigmaL=new RooRealVar("sigmaL","sigmaL",1,0.5,2);
@@ -44,9 +44,9 @@ Double_t asymGausRandom::asymGausFcn(Double_t *x, Double_t *par)
 void asymGausRandom::Init(Int_t seedno){
     RooRandom::randomGenerator()->SetSeed(seedno);
     bfGaus=new RooBifurGauss("bigaus","Bi Gaussian PDF",*xx,*mean,*sigmaL,*sigmaR);
-    unr->SetSeed(seedno);
+//    unr->SetSeed(seedno);
     fAsymGaus = new TF1("fAsymGaus",this,&asymGausRandom::asymGausFcn,-10,10,3,"asymGausRandom","asymGausFcn");
-    dist = new TUnuranContDist(fAsymGaus);
+//    dist = new TUnuranContDist(fAsymGaus);
 }
 
 Double_t asymGausRandom::generate(Double_t meanVal, Double_t sigmaVal){
