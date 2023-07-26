@@ -20,6 +20,8 @@
 #include <vector>
 #include <list>
 
+#define GPUMODE 1
+
 #define NCPUS_UNBINFIT 2
 
 #define EVAL_FAST
@@ -38,10 +40,10 @@
 
 //#define DEBUG
 
-#define kmaxndecay 200
-#define kmaxpaths 200
-#define kmaxparms 150
-#define kmaxnri 100
+#define kmaxndecay 500
+#define kmaxpaths 500
+#define kmaxparms 250
+#define kmaxnri 200
 
 //! make path
 typedef struct {

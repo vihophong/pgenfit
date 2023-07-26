@@ -104,7 +104,7 @@ void simulation::BookSimulationTree()
 
 void simulation::BookCorrelationTree()
 {
-    fdeltaxy=4.;
+    fdeltaxy=2.;
     fionbetawindowlow=10;
     fionbetawindowup=20;
     fwindowbetaneutronlow=400000./1e9;

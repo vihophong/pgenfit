@@ -173,7 +173,11 @@ void unbinfit::fitBackground(Int_t opt)
     // bkg pdf
     bkgmodelneg= new fitFbkg("bkgmodel","bkgmodel",*xbkg,*y,*bkg1nratio,*bkg2nratio,slope1,slope2,slope3);
     // fit background
+#ifdef GPUMODE
+    if (opt==0) bkgmodelneg->fitTo(*databkg,BatchMode("cuda"),Save()) ;
+#else
     if (opt==0) bkgmodelneg->fitTo(*databkg,NumCPU(ncpu),Save()) ;
+#endif
 
     //!*****************************************
     //! Prepare positive background function
@@ -733,9 +737,17 @@ void unbinfit::doFit()
     fStopWatch->Start();
 
     if (ffitopt==0)
+#ifdef GPUMODE
+        fitres=final_pdf->fitTo(*data,BatchMode("cuda"),Save(kTRUE),PrintLevel(3));
+#else
         fitres=final_pdf->fitTo(*data,NumCPU(ncpu),Save(kTRUE),PrintLevel(3));
+#endif
     else
+#ifdef GPUMODE
+        fitres=final_pdf->fitTo(*data,ExternalConstraints(*externalconstrains),BatchMode("cuda"),Save(kTRUE),PrintLevel(3));
+#else
         fitres=final_pdf->fitTo(*data,ExternalConstraints(*externalconstrains),NumCPU(ncpu),Save(kTRUE),PrintLevel(3));
+#endif
     fStopWatch->Stop();
     fFitTime=fStopWatch->RealTime();
 }
@@ -1280,33 +1292,38 @@ void unbinfit::calculateUpperLimit()
     sprintf(tempstr,"%s.txt",foutputData);
     std::ofstream ofs(tempstr,std::ios::app);
 
-    N0b=fB_parent->Eval(p_deadtime)/fB->GetParameter(0)/binw-fB_parent->Eval(p_timerange)/fB->GetParameter(0)/binw;
+//! Add 2023, Mar 1: integraged range reduced to only up to 20 times of half-life
+    Double_t integratedTimeRange = TMath::Log(2)/fB_parent->GetParameter(0)*20;
+    //! old
+//    Double_t integratedTimeRange = p_timerange;
 
-    N0b1n=tree->Draw("",Form("x>%f&&x<%f&&y==1",p_deadtime,p_timerange),"goff")-
-            tree->Draw("",Form("x>%f&&x<%f&&y==1",-p_timerange,-p_deadtime),"goff")-
-            treeb->Draw("",Form("x>%f&&x<%f&&y==1",p_deadtime,p_timerange),"goff")+
-            treeb->Draw("",Form("x>%f&&x<%f&&y==1",-p_timerange,-p_deadtime),"goff");
-    N0b1n_bkg=tree->Draw("",Form("x>%f&&x<%f&&y==1",-p_timerange,-p_deadtime),"goff")+
-            treeb->Draw("",Form("x>%f&&x<%f&&y==1",p_deadtime,p_timerange),"goff")-
-            treeb->Draw("",Form("x>%f&&x<%f&&y==1",-p_timerange,-p_deadtime),"goff");
-    N0b2n=tree->Draw("",Form("x>%f&&x<%f&&y==2",p_deadtime,p_timerange),"goff")-
-            tree->Draw("",Form("x>%f&&x<%f&&y==2",-p_timerange,-p_deadtime),"goff")-
-            treeb->Draw("",Form("x>%f&&x<%f&&y==2",p_deadtime,p_timerange),"goff")+
-            treeb->Draw("",Form("x>%f&&x<%f&&y==2",-p_timerange,-p_deadtime),"goff");
-    N0b2n_bkg=tree->Draw("",Form("x>%f&&x<%f&&y==2",-p_timerange,-p_deadtime),"goff")+
-            treeb->Draw("",Form("x>%f&&x<%f&&y==2",p_deadtime,p_timerange),"goff")-
-            treeb->Draw("",Form("x>%f&&x<%f&&y==2",-p_timerange,-p_deadtime),"goff");
-    N0b3n=tree->Draw("",Form("x>%f&&x<%f&&y==3",p_deadtime,p_timerange),"goff")-
-            tree->Draw("",Form("x>%f&&x<%f&&y==3",-p_timerange,-p_deadtime),"goff")-
-            treeb->Draw("",Form("x>%f&&x<%f&&y==3",p_deadtime,p_timerange),"goff")+
-            treeb->Draw("",Form("x>%f&&x<%f&&y==3",-p_timerange,-p_deadtime),"goff");
-    N0b3n_bkg=tree->Draw("",Form("x>%f&&x<%f&&y==3",-p_timerange,-p_deadtime),"goff")+
-            treeb->Draw("",Form("x>%f&&x<%f&&y==3",p_deadtime,p_timerange),"goff")-
-            treeb->Draw("",Form("x>%f&&x<%f&&y==3",-p_timerange,-p_deadtime),"goff");
+    N0b=fB_parent->Eval(p_deadtime)/fB->GetParameter(0)/binw-fB_parent->Eval(integratedTimeRange)/fB->GetParameter(0)/binw;
+
+    N0b1n=tree->Draw("",Form("x>%f&&x<%f&&y==1",p_deadtime,integratedTimeRange),"goff")-
+            tree->Draw("",Form("x>%f&&x<%f&&y==1",-integratedTimeRange,-p_deadtime),"goff")-
+            treeb->Draw("",Form("x>%f&&x<%f&&y==1",p_deadtime,integratedTimeRange),"goff")+
+            treeb->Draw("",Form("x>%f&&x<%f&&y==1",-integratedTimeRange,-p_deadtime),"goff");
+    N0b1n_bkg=tree->Draw("",Form("x>%f&&x<%f&&y==1",-integratedTimeRange,-p_deadtime),"goff")+
+            treeb->Draw("",Form("x>%f&&x<%f&&y==1",p_deadtime,integratedTimeRange),"goff")-
+            treeb->Draw("",Form("x>%f&&x<%f&&y==1",-integratedTimeRange,-p_deadtime),"goff");
+    N0b2n=tree->Draw("",Form("x>%f&&x<%f&&y==2",p_deadtime,integratedTimeRange),"goff")-
+            tree->Draw("",Form("x>%f&&x<%f&&y==2",-integratedTimeRange,-p_deadtime),"goff")-
+            treeb->Draw("",Form("x>%f&&x<%f&&y==2",p_deadtime,integratedTimeRange),"goff")+
+            treeb->Draw("",Form("x>%f&&x<%f&&y==2",-integratedTimeRange,-p_deadtime),"goff");
+    N0b2n_bkg=tree->Draw("",Form("x>%f&&x<%f&&y==2",-integratedTimeRange,-p_deadtime),"goff")+
+            treeb->Draw("",Form("x>%f&&x<%f&&y==2",p_deadtime,integratedTimeRange),"goff")-
+            treeb->Draw("",Form("x>%f&&x<%f&&y==2",-integratedTimeRange,-p_deadtime),"goff");
+    N0b3n=tree->Draw("",Form("x>%f&&x<%f&&y==3",p_deadtime,integratedTimeRange),"goff")-
+            tree->Draw("",Form("x>%f&&x<%f&&y==3",-integratedTimeRange,-p_deadtime),"goff")-
+            treeb->Draw("",Form("x>%f&&x<%f&&y==3",p_deadtime,integratedTimeRange),"goff")+
+            treeb->Draw("",Form("x>%f&&x<%f&&y==3",-integratedTimeRange,-p_deadtime),"goff");
+    N0b3n_bkg=tree->Draw("",Form("x>%f&&x<%f&&y==3",-integratedTimeRange,-p_deadtime),"goff")+
+            treeb->Draw("",Form("x>%f&&x<%f&&y==3",p_deadtime,integratedTimeRange),"goff")-
+            treeb->Draw("",Form("x>%f&&x<%f&&y==3",-integratedTimeRange,-p_deadtime),"goff");
 
     ofs<<N0b<<"\t"<<N0b1n<<"\t"<<N0b2n<<"\t"<<N0b3n<<"\t"<<N0b1n_bkg<<"\t"<<N0b2n_bkg<<"\t"<<
          N0b3n_bkg<<"\t"<<pVal[fdecaypath->getNMember()*4]<<"\t"<<pValError[fdecaypath->getNMember()*4]<<"\t"<<
-      pVal[fdecaypath->getNMember()*5+7]<<"\t"<<pValError[fdecaypath->getNMember()*5+7]<<endl;
+      pVal[fdecaypath->getNMember()*5+7]<<"\t"<<pValError[fdecaypath->getNMember()*5+7]<<"\t"<<integratedTimeRange<<endl;
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
