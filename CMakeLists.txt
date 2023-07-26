@@ -94,6 +94,12 @@ set(PROJ_DATA
   runsinglefit.sh
   runbenchmark.sh
   rununbinfit_multithreads.sh
+  hx.root
+  hy.root
+  hdx.root
+  hdy.root
+  himpx.root
+  himpy.root
   )
 
 
