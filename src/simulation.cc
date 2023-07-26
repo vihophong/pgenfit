@@ -253,7 +253,7 @@ void simulation::readSimulationParameters(char *inputfile)
 
         if (line_head=="tsoffset") fsimparms.tsoffset=line_val;
         if (line_head=="neuwbeamperctg") fsimparms.neuwbeamperctg=line_val;
-        if (line_head=="deltaXY") fdeltaxy=line_val;
+        if (line_head=="corrDeltaXY") fdeltaxy=line_val;
     }
 
     cout<<"*****************\nSimulation parameters:\n"<<endl;
@@ -299,6 +299,7 @@ void simulation::readSimulationParameters(char *inputfile)
 
     cout<<"Offset time stamp = "<<fsimparms.tsoffset<<endl;
     cout<<"Percentage of neutron correlated with beam = "<<fsimparms.neuwbeamperctg<<endl;
+    cout<<"DeltaXY for correlation = "<<fdeltaxy<<endl;
 
     cout<<"*****************\n"<<endl;
 

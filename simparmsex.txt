@@ -73,3 +73,6 @@ ybetabkgsigma 19.
 tsoffset 3600
 # Percentage of neutron correlated with beam, set to 0 if this background neutron is not considered
 neuwbeamperctg 0
+
+#DeltaXY for correlation
+corrDeltaXY 5.
