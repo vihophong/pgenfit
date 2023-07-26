@@ -54,6 +54,36 @@ simulation::simulation(decaypath* path):fneutronData(),fbetaData(),fionData(),fc
     Init(path);
 }
 
+
+
+simulation::simulation(char* inputParm,char* simulationparms,char* outputfile){
+    Init(inputParm);
+    readSimulationParameters(simulationparms);
+    TFile* fout=new TFile(outputfile,"recreate");
+    fout->cd();
+    setRandomSeed(0);
+    BookSimulationTree();
+    BookCorrelationTree();
+    runSimulation();
+    TTree* treeion=getIonSimulationTree();
+    TTree* treebeta=getBetaSimulationTree();
+    TTree* treeneutron=getNeutronSimulationTree();
+    TTree* treecorr=getCorrelationTree();
+    TTree* treemlh=getMLHTree();
+    TTree* treemlhbw=getMLHTreeBackward();
+    fillTreeData();
+    correlateData();
+    fout->cd();
+    treeion->Write();
+    treebeta->Write();
+    treeneutron->Write();
+    treecorr->Write();
+    treemlh->Write();
+    treemlhbw->Write();
+    writeMLHHistos();
+    fout->Close();
+}
+
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 simulation::~simulation()
@@ -80,6 +110,8 @@ void simulation::Init(char* inputParms)
 
     fprimImplantEvt=0;
     fprimImplantT=0;
+
+    fdeltaxy=4.;
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -104,7 +136,7 @@ void simulation::BookSimulationTree()
 
 void simulation::BookCorrelationTree()
 {
-    fdeltaxy=4.;
+//    fdeltaxy=4.;
     fionbetawindowlow=10;
     fionbetawindowup=20;
     fwindowbetaneutronlow=400000./1e9;
@@ -221,6 +253,7 @@ void simulation::readSimulationParameters(char *inputfile)
 
         if (line_head=="tsoffset") fsimparms.tsoffset=line_val;
         if (line_head=="neuwbeamperctg") fsimparms.neuwbeamperctg=line_val;
+        if (line_head=="deltaXY") fdeltaxy=line_val;
     }
 
     cout<<"*****************\nSimulation parameters:\n"<<endl;

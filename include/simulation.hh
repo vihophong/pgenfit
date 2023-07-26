@@ -102,8 +102,13 @@ typedef struct{
 class simulation
 {
   public:
+
+
     simulation(char* inputParm);
     simulation(decaypath* path);
+
+
+    simulation(char* inputParm,char* simulationparms,char* outputfile);
     virtual ~simulation();
     void Init(char* inputParms);
     void Init(decaypath* path){fdecaypathobj=path;}
