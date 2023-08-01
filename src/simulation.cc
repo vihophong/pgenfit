@@ -312,7 +312,7 @@ void simulation::readSimulationParameters(char *inputfile)
     hhdy=NULL;
 
     if (fsimparms.isSpatialDistFromHist!=0){
-        cout<<"reading histograms hy.root, hx.root, himpx.root, himpy.root, hdx.root and hdy.root for beta background distribution"<<endl;
+        cout<<"reading histograms hy.root, hx.root, himpx.root, himpy.root, hdx.root and hdy.root for implantation profile and beta background distribution"<<endl;
         TFile* f1x = TFile::Open("hx.root");
         hhx=(TH1F*)f1x->Get("hx");
         TFile* f1y = TFile::Open("hy.root");

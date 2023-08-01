@@ -8,7 +8,9 @@ set (CMAKE_CXX_STANDARD 11)
 
 ### import modules
 find_package(SWIG REQUIRED)
-include(${SWIG_USE_FILE})
+if (SWIG_FOUND)
+    include(${SWIG_USE_FILE})
+endif()
 
 include_directories(${CMAKE_SOURCE_DIR} /usr/include/python3.6m)
 
@@ -62,19 +64,19 @@ add_executable(simulationC
 target_link_libraries(simulationC ${ROOT_LIBRARIES})
 target_link_libraries(simulationC fitF)
 
-ROOT_GENERATE_DICTIONARY(G__decaypath  ${PROJECT_SOURCE_DIR}/include/decaypath.hh  ${PROJECT_SOURCE_DIR}/include/common.hh LINKDEF  ${PROJECT_SOURCE_DIR}/include/decaypathLinkDef.hh)
-add_library(decaypath SHARED  ${PROJECT_SOURCE_DIR}/include/decaypath.hh  ${PROJECT_SOURCE_DIR}/src/decaypath.cc G__decaypath.cxx)
-target_link_libraries(decaypath ${ROOT_LIBRARIES})
-
-
-set_property(SOURCE ${PROJECT_SOURCE_DIR}/include/simulation.i PROPERTY CPLUSPLUS ON)
-swig_add_library(simulation
-  TYPE SHARED
-  LANGUAGE python
-  SOURCES ${PROJECT_SOURCE_DIR}/include/simulation.i  ${PROJECT_SOURCE_DIR}/src/simulation.cc
-  )
-swig_link_libraries(simulation decaypath)
-target_include_directories(simulation PUBLIC "")
+if (SWIG_FOUND)
+    ROOT_GENERATE_DICTIONARY(G__decaypath  ${PROJECT_SOURCE_DIR}/include/decaypath.hh  ${PROJECT_SOURCE_DIR}/include/common.hh LINKDEF  ${PROJECT_SOURCE_DIR}/include/decaypathLinkDef.hh)
+    add_library(decaypath SHARED  ${PROJECT_SOURCE_DIR}/include/decaypath.hh  ${PROJECT_SOURCE_DIR}/src/decaypath.cc G__decaypath.cxx)
+    target_link_libraries(decaypath ${ROOT_LIBRARIES})
+    set_property(SOURCE ${PROJECT_SOURCE_DIR}/include/simulation.i PROPERTY CPLUSPLUS ON)
+    swig_add_library(simulation
+      TYPE SHARED
+      LANGUAGE python
+      SOURCES ${PROJECT_SOURCE_DIR}/include/simulation.i  ${PROJECT_SOURCE_DIR}/src/simulation.cc
+      )
+    swig_link_libraries(simulation decaypath)
+    target_include_directories(simulation PUBLIC "")
+endif()
 
 #----------------------------------------------------------------------------
 # Copy all resources including scripts, examples, text files, etc... to the build directory, i.e. the directory in which we
