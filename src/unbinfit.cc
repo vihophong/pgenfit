@@ -1280,8 +1280,8 @@ void unbinfit::calculateUpperLimit()
     sprintf(tempstr,"%s.txt",foutputData);
     std::ofstream ofs(tempstr,std::ios::app);
 
-    //N0b=fB_parent->Eval(p_deadtime)/fB->GetParameter(0)/binw-fB_parent->Eval(p_timerange)/fB->GetParameter(0)/binw;
-    N0b=fB_parent->Eval(p_deadtime)*(1-exp(-fB->GetParameter(0)*binw)) -fB_parent->Eval(p_timerange)*(1-exp(-fB->GetParameter(0)*binw));
+    N0b=fB_parent->Eval(p_deadtime)/fB->GetParameter(0)/binw-fB_parent->Eval(p_timerange)/fB->GetParameter(0)/binw;
+    //N0b=fB_parent->Eval(p_deadtime)*(1-exp(-fB->GetParameter(0)*binw)) -fB_parent->Eval(p_timerange)*(1-exp(-fB->GetParameter(0)*binw));
 
     N0b1n=tree->Draw("",Form("x>%f&&x<%f&&y==1",p_deadtime,p_timerange),"goff")-
             tree->Draw("",Form("x>%f&&x<%f&&y==1",-p_timerange,-p_deadtime),"goff")-
