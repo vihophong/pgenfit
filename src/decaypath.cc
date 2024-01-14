@@ -90,8 +90,8 @@ void decaypath::ProcessMember(MemberDef *obj)
 
     // convert half-life into activity
     obj->decay_lamda=log(2)/obj->decay_hl;
-    obj->decay_lamdaerr=log(2)/obj->decay_hl/obj->decay_hl*obj->decay_hlerr;
-    obj->decay_lamdaerrhi=log(2)/obj->decay_hl/obj->decay_hl*obj->decay_hlerrhi;
+    obj->decay_lamdaerr=log(2)/obj->decay_hl/obj->decay_hl*obj->decay_hlerrhi;
+    obj->decay_lamdaerrhi=log(2)/obj->decay_hl/obj->decay_hl*obj->decay_hlerr;
     obj->decay_lamdalow=log(2)/obj->decay_hlup;
     obj->decay_lamdaup=log(2)/obj->decay_hllow;
     obj->is_decay_lamda_fix=obj->is_decay_hl_fix;
