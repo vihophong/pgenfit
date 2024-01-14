@@ -52,11 +52,11 @@ public:
   Double_t fcndecay_daugter(Double_t *x, Double_t *par) const{
       return fcndecay(x, par)-fcndecay_parent(x, par)+par[fpath->nri5+8]+par[fpath->nri5+9]*x[0];
   }
-  Double_t fcndecay1n_daugter(Double_t *x, Double_t *par) const{
-      return fcndecay1n(x, par)-fcndecay1n_parent(x, par)+par[fpath->nri5+8]+par[fpath->nri5+9]*x[0];
+  Double_t fcndecay1n_daugter(Double_t *x, Double_t *par) const{//Dec28, 2023, found bug on this
+      return fcndecay1n(x, par)-fcndecay1n_parent(x, par)+par[fpath->nri5+10]+par[fpath->nri5+11]*x[0];
   }
   Double_t fcndecay2n_daugter(Double_t *x, Double_t *par) const{
-      return fcndecay2n(x, par)-fcndecay2n_parent(x, par)+par[fpath->nri5+8]+par[fpath->nri5+9]*x[0];
+      return fcndecay2n(x, par)-fcndecay2n_parent(x, par)+par[fpath->nri5+12]+par[fpath->nri5+13]*x[0];
   }
 
   Double_t fcndecay1n_c1(Double_t *x, Double_t *par) const;

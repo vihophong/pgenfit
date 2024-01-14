@@ -20,6 +20,8 @@
 using namespace RooFit;
 
 
+//#define LONG_FIT_RANGE 20
+
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 unbinfit::unbinfit()
@@ -32,7 +34,11 @@ unbinfit::unbinfit()
     fnentrieslimit=ENTRYLIMIT;
 
     p_deadtime=STARTFIT;
+#ifdef LONG_FIT_RANGE
+    p_timerange=20;
+#else
     p_timerange=10;
+#endif
     nbinsHB=200;
     nbinsHSB=200;
     nbinsHSB2=200;
@@ -59,7 +65,12 @@ unbinfit::unbinfit()
     fitMinNll-9999;
 
     plotrangelow=-0.5;
+    plotrangehi=5;
+#ifdef LONG_FIT_RANGE
+    plotrangehi=5;
+#else
     plotrangehi=3;
+#endif
     fmineffMC = 0.475349;
     fmaxeffMC = 0.664527;
 }
@@ -918,7 +929,9 @@ void unbinfit::plotResults()
     fSB2_c134=new TF1("fSB2_c134",totdecaymodelforplot,&fitF::fcndecay2n_c134,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay2n_c134");
 
     writeFitComponents();
+
     plotResultsMore();
+
 }
 
 
@@ -1292,6 +1305,8 @@ void unbinfit::calculateUpperLimit()
     sprintf(tempstr,"%s.txt",foutputData);
     std::ofstream ofs(tempstr,std::ios::app);
 
+
+
 //! Add 2023, Mar 1: integraged range reduced to only up to 20 times of half-life
     Double_t integratedTimeRange = TMath::Log(2)/fB_parent->GetParameter(0)*20;
     //! old
@@ -1320,7 +1335,6 @@ void unbinfit::calculateUpperLimit()
     N0b3n_bkg=tree->Draw("",Form("x>%f&&x<%f&&y==3",-integratedTimeRange,-p_deadtime),"goff")+
             treeb->Draw("",Form("x>%f&&x<%f&&y==3",p_deadtime,integratedTimeRange),"goff")-
             treeb->Draw("",Form("x>%f&&x<%f&&y==3",-integratedTimeRange,-p_deadtime),"goff");
-
     ofs<<N0b<<"\t"<<N0b1n<<"\t"<<N0b2n<<"\t"<<N0b3n<<"\t"<<N0b1n_bkg<<"\t"<<N0b2n_bkg<<"\t"<<
          N0b3n_bkg<<"\t"<<pVal[fdecaypath->getNMember()*4]<<"\t"<<pValError[fdecaypath->getNMember()*4]<<"\t"<<
       pVal[fdecaypath->getNMember()*5+7]<<"\t"<<pValError[fdecaypath->getNMember()*5+7]<<"\t"<<integratedTimeRange<<endl;
@@ -1329,11 +1343,14 @@ void unbinfit::calculateUpperLimit()
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 void unbinfit::plotResultsMore(Int_t opt)
 {
+
     calculateUpperLimit();
+
     gStyle->SetOptStat(0);
     /**
         canvas 0n
     */
+
     TCanvas* c0n=new TCanvas("c0n","c0n",1200,800);
     TPad *pad1_c0n = new TPad("pad1_c0n","pad1_c0n",0,0.3,1,1);
     TPad *pad2_c0n = new TPad("pad2_c0n","pad2_c0n",0,0,1,0.3);
@@ -1849,6 +1866,7 @@ void unbinfit::Run()
         printCurrentParameters();
         doFit();
         writeResultsMC();
+
         calculateChiSquare();
     }
     writeOutputTree();
