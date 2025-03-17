@@ -1226,7 +1226,7 @@ void unbinfit::calculateChiSquare(Int_t opt){
             chisquare+=chisquarei;
         }
         chisquare=2*chisquare;
-        chiSquareNDF=chisquare/(model0nHist->GetN()+fitres->floatParsFinal().getSize());
+        chiSquareNDF=chisquare/(model0nHist->GetN()-fitres->floatParsFinal().getSize());
     }else{
         Int_t k=0;
         for (Int_t i=0;i<hB->GetNbinsX();i++){
@@ -1240,7 +1240,7 @@ void unbinfit::calculateChiSquare(Int_t opt){
             }
         }
         chisquare=2*chisquare;
-        chiSquareNDF=chisquare/(k+fitCovQual);
+        chiSquareNDF=chisquare/(k-fitCovQual);
     }
 
     //!1n
@@ -1253,7 +1253,7 @@ void unbinfit::calculateChiSquare(Int_t opt){
             chisquare1n+=chisquarei;
         }
         chisquare1n=2*chisquare1n;
-        chiSquareNDF1n=chisquare1n/(model1nHist->GetN()+fitres->floatParsFinal().getSize());
+        chiSquareNDF1n=chisquare1n/(model1nHist->GetN()-fitres->floatParsFinal().getSize());
     }else{
         Int_t k=0;
         for (Int_t i=0;i<hSB->GetNbinsX();i++){
@@ -1267,7 +1267,7 @@ void unbinfit::calculateChiSquare(Int_t opt){
             }
         }
         chisquare1n=2*chisquare1n;
-        chiSquareNDF1n=chisquare1n/(k+fitCovQual);
+        chiSquareNDF1n=chisquare1n/(k-fitCovQual);
     }
 
     //!2n
@@ -1280,7 +1280,7 @@ void unbinfit::calculateChiSquare(Int_t opt){
             chisquare2n+=chisquarei;
         }
         chisquare2n=2*chisquare2n;
-        chiSquareNDF2n=chisquare2n/(model2nHist->GetN()+fitres->floatParsFinal().getSize());
+        chiSquareNDF2n=chisquare2n/(model2nHist->GetN()-fitres->floatParsFinal().getSize());
     }else{
         Int_t k=0;
         for (Int_t i=0;i<hSB2->GetNbinsX();i++){
@@ -1294,7 +1294,7 @@ void unbinfit::calculateChiSquare(Int_t opt){
             }
         }
         chisquare2n=2*chisquare2n;
-        chiSquareNDF2n=chisquare2n/(k+fitCovQual);
+        chiSquareNDF2n=chisquare2n/(k-fitCovQual);
     }
 }
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -1434,7 +1434,7 @@ void unbinfit::plotResultsMore(Int_t opt)
         }
         chisquare=2*chisquare;
         cout<<"ndf="<<fitres->floatParsFinal().getSize()<<endl;
-        chiSquareNDF=chisquare/(model0nHist->GetN()+fitres->floatParsFinal().getSize());
+        chiSquareNDF=chisquare/(model0nHist->GetN()-fitres->floatParsFinal().getSize());
         cout<<"chisquare/ndf="<<chiSquareNDF<<endl;
         resplot_0n=new TGraphErrors(model0nHist->GetN(),xres,yres,0,yreserr);
         for (Int_t i=0;i<modelbkg0nHist->GetN();i++){
@@ -1599,7 +1599,7 @@ void unbinfit::plotResultsMore(Int_t opt)
         }
         chisquare1n=2*chisquare1n;
         cout<<"ndf="<<fitres->floatParsFinal().getSize()<<endl;
-        chiSquareNDF1n=chisquare1n/(model1nHist->GetN()+fitres->floatParsFinal().getSize());
+        chiSquareNDF1n=chisquare1n/(model1nHist->GetN()-fitres->floatParsFinal().getSize());
         cout<<"chisquare/ndf="<<chiSquareNDF1n<<endl;
 
         resplot_1n=new TGraphErrors(model1nHist->GetN(),xres,yres,0,yreserr);
@@ -1630,7 +1630,7 @@ void unbinfit::plotResultsMore(Int_t opt)
             }
         }
         chisquare1n=2*chisquare1n;
-        chiSquareNDF1n=chisquare1n/(k+fitCovQual);
+        chiSquareNDF1n=chisquare1n/(k-fitCovQual);
         cout<<"chisquare/NDF 1n="<<chiSquareNDF1n<<endl;
         resplot_1n=new TGraphErrors(k,xres,yres,0,yreserr);
         k=0;
@@ -1759,7 +1759,7 @@ void unbinfit::plotResultsMore(Int_t opt)
             chisquare2n+=chisquarei;
         }
         chisquare2n=2*chisquare2n;
-        chiSquareNDF2n=chisquare2n/(model2nHist->GetN()+fitres->floatParsFinal().getSize());
+        chiSquareNDF2n=chisquare2n/(model2nHist->GetN()-fitres->floatParsFinal().getSize());
         resplot_2n=new TGraphErrors(model2nHist->GetN(),xres,yres,0,yreserr);
         for (Int_t i=0;i<modelbkg2nHist->GetN();i++){
             Double_t xi=modelbkg2nHist->GetX()[i];
@@ -1788,7 +1788,7 @@ void unbinfit::plotResultsMore(Int_t opt)
             }
         }
         chisquare2n=2*chisquare2n;
-        chiSquareNDF2n=chisquare2n/(k+fitCovQual);
+        chiSquareNDF2n=chisquare2n/(k-fitCovQual);
         cout<<"chisquare/NDF 2n="<<chiSquareNDF2n<<endl;
         resplot_2n=new TGraphErrors(k,xres,yres,0,yreserr);
         k=0;

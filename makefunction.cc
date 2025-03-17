@@ -12,7 +12,7 @@
 
 #include <iostream>
 #include "unbinfit.hh"
-
+#include "TCutG.h"
 int main(int argc, char *argv[])
 {
     if (argc==2){
