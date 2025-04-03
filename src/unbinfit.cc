@@ -16,8 +16,13 @@
 #include "TSystem.h"
 #include <iostream>
 
+#include "RooStats/ProfileLikelihoodCalculator.h"
+#include "RooStats/HypoTestInverter.h"
+#include "RooStats/AsymptoticCalculator.h"
+#include "RooStats/LikelihoodInterval.h"
 
 using namespace RooFit;
+using namespace RooStats;
 
 
 //#define LONG_FIT_RANGE 20
@@ -73,6 +78,9 @@ unbinfit::unbinfit()
 #endif
     fmineffMC = 0.475349;
     fmaxeffMC = 0.664527;
+
+    significance = -9999;
+    upperLimit = -9999;
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -137,6 +145,8 @@ void unbinfit::Init(char* inputParms, char* inputData)
     // prepare data set for bkg fit
     databkg=new RooDataSet("databkg","databkg",RooArgSet(*xbkg,*y),Import(*tree));
     databkg->Print() ;
+    t12databkg=new RooDataSet("t12databkg","t12databkg",RooArgSet(*xbkg,*y),Import(*tree));
+    t12databkg->Print() ;
 
     //!*****************************************
     //! Setup histograms for unbinned fit
@@ -183,11 +193,14 @@ void unbinfit::fitBackground(Int_t opt)
 
     // bkg pdf
     bkgmodelneg= new fitFbkg("bkgmodel","bkgmodel",*xbkg,*y,*bkg1nratio,*bkg2nratio,slope1,slope2,slope3);
+    bkgmodelnegT12= new RooPolynomial("bkgmodelnegT12","bkgmodelnegT12",*xbkg,RooArgList(slope1));
     // fit background
 #ifdef GPUMODE
     if (opt==0) bkgmodelneg->fitTo(*databkg,BatchMode("cuda"),Save()) ;
+    if (opt==0) bkgmodelnegT12->fitTo(*databkg,BatchMode("cuda"),Save()) ;
 #else
     if (opt==0) bkgmodelneg->fitTo(*databkg,NumCPU(ncpu),Save()) ;
+    if (opt==0) bkgmodelnegT12->fitTo(*databkg,NumCPU(ncpu),Save()) ;
 #endif
 
     //!*****************************************
@@ -205,6 +218,7 @@ void unbinfit::fitBackground(Int_t opt)
 
     // bkg pdf positive
     bkgmodelpos=new fitFbkg("bkgmodelpos","bkgmodelpos",*x,*y,*bkg1nratio,*bkg2nratio,*slope1pos,*slope2pos,*slope3pos);
+    bkgmodelposT12= new RooPolynomial("bkgmodelposT12","bkgmodelposT12",*x,RooArgList(*slope1pos));
 
 
     //! bin fit background negative
@@ -276,7 +290,6 @@ void unbinfit::initFitParameters()
         }else{
             pvar[fdecaypath->getNMember()*4+i]->setError(fdecaypath->getMember(i)->neuefferr);
         }
-
     }
     // initialize initial activity and set fixed to 1
     p[fdecaypath->getNMember()*5]=new RooRealVar(Form("p%d",fdecaypath->getNMember()*5),Form("p%d",fdecaypath->getNMember()*5),1,0,2);
@@ -296,7 +309,6 @@ void unbinfit::initFitParameters()
     TH1F* hdecay2nbwd=(TH1F*) gDirectory->Get(tempchar1);
 
     // Calculate random coincidence paramters
-
     Double_t n1nbwd=(Double_t) hdecay1nbwd->GetEntries();
     Double_t gt0nbwd=(Double_t) hdecaygt0nbwd->GetEntries();
     Double_t n2nbwd=(Double_t) hdecay2nbwd->GetEntries();
@@ -309,7 +321,6 @@ void unbinfit::initFitParameters()
     Double_t randcoinf1nerr=n1nbwd/nball*TMath::Sqrt(1/n1nbwd+1/nball);
     Double_t randcoinfgt0nerr=gt0nbwd/nball*TMath::Sqrt(1/gt0nbwd+1/nball);
     Double_t randcoinf2nerr=n2nbwd/nball*TMath::Sqrt(1/n2nbwd+1/nball);
-
 
     // Initialize random coincicence parameters
     p[fdecaypath->getNMember()*5+1]=new RooRealVar(Form("p%d",fdecaypath->getNMember()*5+1),Form("p%d",fdecaypath->getNMember()*5+1),randcoinf1n,0,1);
@@ -345,6 +356,13 @@ void unbinfit::initFitParameters()
 
     std::cout<<"read-in efficiency factors:"<<std::endl;
     std::cout<<be<<"\t"<<err_be<<"\t"<<b1ne<<"\t"<<err_b1ne<<"\t"<<b2ne<<"\t"<<err_b2ne<<"\t"<<n1n2ne<<"\t"<<err_n1n2ne<<"\t"<<err_n1n2ne_hi<<"\t"<<std::endl;
+
+    if (ffitopt==2){
+        pvar[fdecaypath->getNMember()*4]->setVal(1.);
+        pvar[fdecaypath->getNMember()*4]->setConstant();
+        pvar[fdecaypath->getNMember()*4+1]->setVal(be);
+        pvar[fdecaypath->getNMember()*4+1]->setConstant();
+    }
 
     p[fdecaypath->getNMember()*5+4]=new RooRealVar(Form("p%d",fdecaypath->getNMember()*5+4),Form("p%d",fdecaypath->getNMember()*5+4),be,0,1);
     p[fdecaypath->getNMember()*5+5]=new RooRealVar(Form("p%d",fdecaypath->getNMember()*5+5),Form("p%d",fdecaypath->getNMember()*5+5),b1ne,0,1);
@@ -384,6 +402,13 @@ void unbinfit::initFitParameters()
 
     cout<<"NSIG = "<<nnsig<<endl;
     nbkg->setError(TMath::Sqrt(nnbkg));
+
+//    if (ffitopt==2){
+//        for (int i=0;i<fdecaypath->getNMember()*4+2;i++){
+//            pT12[i] = p[i];
+//        }
+//    }
+
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -505,6 +530,10 @@ void unbinfit::setModel()
     //! *****************************************
     totdecaymodel=new fitF("totdecaymodel","totdecaymodel",*x,*y,p);
     final_pdf=new RooAddPdf("final_pdf","final pdf",RooArgList(*totdecaymodel,*bkgmodelpos),RooArgList(*nsig,*nbkg));
+    totdecaymodelT12=new fitF_T12("totdecaymodelT12","totdecaymodelT12",*x,p);
+    final_pdfT12=new RooAddPdf("final_pdfT12","final_pdfT12 ",RooArgList(*totdecaymodelT12,*bkgmodelposT12),RooArgList(*nsig,*nbkg));
+//    t12data = totdecaymodelT12->generate(*x,10000) ;
+
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -515,6 +544,8 @@ void unbinfit::prepareData()
     //! *****************************************
     data=new RooDataSet("data","data",RooArgSet(*x,*y),Import(*tree)) ;
     data->Print() ;
+    t12data=new RooDataSet("t12data","t12data",RooArgSet(*x),Import(*tree)) ;
+    t12data->Print() ;
 }
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
@@ -635,7 +666,15 @@ void unbinfit::printCurrentParameters()
 void unbinfit::setValParameters()
 {
     for (int i=0;i<fdecaypath->getNMember()*5+8;i++){
-        pvar[i]->setVal(pVal[i]);
+        if (ffitopt==2){//fit with half-life only
+            if (i!=fdecaypath->getNMember()*4 && i!=fdecaypath->getNMember()*4+1){
+                pvar[i]->setVal(pVal[i]);
+            }else if (i==fdecaypath->getNMember()*4+1){
+                pvar[i]->setVal(pVal[fdecaypath->getNMember()*5+4]);
+            }
+        }else{
+            pvar[i]->setVal(pVal[i]);
+        }
     }
     nbkg->setVal(nbkgVal);
     bkg1nratio->setVal(bkg1nratioVal);
@@ -747,18 +786,29 @@ void unbinfit::doFit()
     fStopWatch->Clear();
     fStopWatch->Start();
 
-    if (ffitopt==0)
+    if (ffitopt==0){
 #ifdef GPUMODE
         fitres=final_pdf->fitTo(*data,BatchMode("cuda"),Save(kTRUE),PrintLevel(3));
 #else
         fitres=final_pdf->fitTo(*data,NumCPU(ncpu),Save(kTRUE),PrintLevel(3));
 #endif
-    else
+    }else if (ffitopt==1){//with external constrain
 #ifdef GPUMODE
         fitres=final_pdf->fitTo(*data,ExternalConstraints(*externalconstrains),BatchMode("cuda"),Save(kTRUE),PrintLevel(3));
 #else
         fitres=final_pdf->fitTo(*data,ExternalConstraints(*externalconstrains),NumCPU(ncpu),Save(kTRUE),PrintLevel(3));
 #endif
+    }else{//fit T1/2 only, gpu mode not support for now
+        fitres=final_pdfT12->fitTo(*t12data,NumCPU(ncpu),Save(kTRUE),PrintLevel(3));
+        ProfileLikelihoodCalculator plc(*t12data, *final_pdfT12, RooArgSet(*nsig));
+        LikelihoodInterval* interval = plc.GetInterval();
+        upperLimit = interval->UpperLimit(*nsig);
+        cout << "Upper Limit on nsig: " << upperLimit << endl;
+        significance = upperLimit / nsig->getError();  // Approximate significance
+        cout << "Signal significance (Profile Likelihood): " << significance << " sigma" << endl;
+
+//        fitres=final_pdfT12->fitTo(*t12data,BatchMode("cuda"));
+    }
     fStopWatch->Stop();
     fFitTime=fStopWatch->RealTime();
 }
@@ -785,9 +835,15 @@ void unbinfit::plotResults()
     c1->Divide(2,3);
     c1->cd(1);
     RooPlot* xframe0 = x->frame(Title("all fit")) ;
-    data->plotOn(xframe0,Binning(nbinsHB/2),RooFit::Name("data0n")) ;
-    binw=(p_timerange-p_deadtime)/nbinsHB*2;
-    final_pdf->plotOn(xframe0,RooFit::Name("data0nmodel")) ;
+    if (ffitopt==2){
+        data->plotOn(xframe0,Binning(nbinsHB/2),RooFit::Name("data0n")) ;
+        binw=(p_timerange-p_deadtime)/nbinsHB*2;
+        final_pdf->plotOn(xframe0,RooFit::Name("data0nmodel")) ;
+    }else{
+        t12data->plotOn(xframe0,Binning(nbinsHB/2),RooFit::Name("data0n")) ;
+        binw=(p_timerange-p_deadtime)/nbinsHB*2;
+        final_pdfT12->plotOn(xframe0,RooFit::Name("data0nmodel")) ;
+    }
     //bkgmodelpos->plotOn(xframe0,RooFit::Name("bkg0nposmodel")) ;
     xframe0->Draw() ;
     c1->cd(3);
@@ -948,6 +1004,7 @@ void unbinfit::writeResults()
     ofs<<"nsig = "<<nsig->getVal()<<"\tnbkg = "<<nbkg->getVal()<<std::endl;
     ofs<<"chisquare/NDF = "<<chiSquareNDF<<"\t"<<chiSquareNDF1n<<"\t"<<chiSquareNDF2n<<std::endl;
     ofs<<"FitTime = "<<fFitTime<<endl;
+    ofs<<"Significane = "<<significance<<endl;
     fitres->Print();
     std::cout<<"Time for MC generation = "<<fMCGenTime<<std::endl;
     std::cout<<"Time for Fitting = "<<fFitTime<<std::endl;
@@ -1399,11 +1456,11 @@ void unbinfit::plotResultsMore(Int_t opt)
 
     fB_parent->SetLineWidth(3);
     fB_parent->SetLineColor(2);
-    fB_parent->SetLineStyle(9);
+//    fB_parent->SetLineStyle(9);
     fB_parent->Draw("same");
     fB_daugter->SetLineWidth(3);
     fB_daugter->SetLineColor(6);
-    fB_daugter->SetLineStyle(10);
+//    fB_daugter->SetLineStyle(10);
     fB_daugter->Draw("same");
     fB_bkgneg->SetLineWidth(3);
     fB_bkgneg->SetLineColor(4);
@@ -1841,10 +1898,11 @@ void unbinfit::Run()
     fitBackground();
 
     initFitParameters();
-    if (ffitopt==0)
+    if (ffitopt==0 || ffitopt==2){
         setNormalFit();
-    else
+    }else{
         setExernalContrainFit();
+    }
     printCurrentParameters();
     prepareData();
     //prepareMonteCarloData(1);

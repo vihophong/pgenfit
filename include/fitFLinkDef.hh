@@ -4,4 +4,5 @@
 #pragma link off all functions;
 #pragma link C++ class fitF+;
 #pragma link C++ class fitFbkg+;
+#pragma link C++ class fitF_T12+;
 #endif

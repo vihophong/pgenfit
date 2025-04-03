@@ -90,6 +90,68 @@ private:
   ClassDef(fitF,1) // Your description goes here...
 };
 
+class fitF_T12 : public RooAbsPdf {
+public:
+  fitF_T12() {} ;
+  fitF_T12(const char *name, const char *title,
+              RooAbsReal& _x,
+              RooAbsReal* _pp[]);
+  fitF_T12(const fitF_T12& other, const char* name=0) ;
+  virtual TObject* clone(const char* newname) const { return new fitF_T12(*this,newname); }
+  inline virtual ~fitF_T12() {
+      std::ifstream pathfile("path.txt");
+      Int_t nri;
+      pathfile>>nri;
+      for (int i=0;i<nri*4+2;i++)
+          delete p[i];
+  }
+  Double_t fcndecay(Double_t *x, Double_t *par) const;
+  Double_t fcndecay1n(Double_t *x, Double_t *par) const;
+  Double_t fcndecay2n(Double_t *x, Double_t *par) const;
+
+  //! for plotting
+  Double_t fcndecay_parent(Double_t *x, Double_t *par) const;
+  Double_t fcndecay1n_parent(Double_t *x, Double_t *par) const;
+  Double_t fcndecay2n_parent(Double_t *x, Double_t *par) const;
+  Double_t fcndecay_daugter(Double_t *x, Double_t *par) const{
+      return fcndecay(x, par)-fcndecay_parent(x, par)+par[fpath->nri5+8]+par[fpath->nri5+9]*x[0];
+  }
+  Double_t fcndecay1n_daugter(Double_t *x, Double_t *par) const{//Dec28, 2023, found bug on this
+      return fcndecay1n(x, par)-fcndecay1n_parent(x, par)+par[fpath->nri5+10]+par[fpath->nri5+11]*x[0];
+  }
+  Double_t fcndecay2n_daugter(Double_t *x, Double_t *par) const{
+      return fcndecay2n(x, par)-fcndecay2n_parent(x, par)+par[fpath->nri5+12]+par[fpath->nri5+13]*x[0];
+  }
+
+  Double_t fcndecay1n_c1(Double_t *x, Double_t *par) const;
+  Double_t fcndecay1n_c2(Double_t *x, Double_t *par) const;
+  Double_t fcndecay1n_c3(Double_t *x, Double_t *par) const;
+  Double_t fcndecay1n_c23(Double_t *x, Double_t *par) const;
+
+  Double_t fcndecay2n_c1(Double_t *x, Double_t *par) const;
+  Double_t fcndecay2n_c2(Double_t *x, Double_t *par) const;
+  Double_t fcndecay2n_c3(Double_t *x, Double_t *par) const;
+  Double_t fcndecay2n_c4(Double_t *x, Double_t *par) const;
+
+  Double_t fcndecay2n_c134(Double_t *x, Double_t *par) const;
+
+
+  void initPath() ;
+
+protected:
+  path* fpath;
+  void calculateDecay(Double_t &fdecayall,Double_t &fparent, Double_t* fdaugters, Double_t *l,Double_t *e,Double_t *p1n,Double_t *p2n,Double_t *py,Double_t N0,Double_t be) const;
+  Double_t calculateDecay1n(Double_t fparent, Double_t* fdaugters, Double_t *p1n,Double_t *p2n,Double_t *ne,Double_t randcoinf1n,Double_t randcoinfgt0n,Double_t be,Double_t b1ne,Double_t b2ne,Double_t n1n2ne) const;
+  Double_t calculateDecay2n(Double_t fparent, Double_t* fdaugters, Double_t *p1n,Double_t *p2n,Double_t *ne,Double_t randcoinf1n,Double_t randcoinfgt0n,Double_t be,Double_t randcoinf2n,Double_t b1ne,Double_t b2ne,Double_t n1n2ne) const;
+
+  RooRealProxy x ;
+  RooRealProxy* p[MAX_N_PARMS];
+  Double_t evaluate() const ;
+
+private:
+  ClassDef(fitF_T12,1) // Your description goes here...
+};
+
 class fitFbkg : public RooAbsPdf {
 public:
   fitFbkg() {} ;

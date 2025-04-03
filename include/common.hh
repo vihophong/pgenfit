@@ -22,7 +22,7 @@
 
 #define GPUMODE 1
 
-#define NCPUS_UNBINFIT 2
+#define NCPUS_UNBINFIT 16
 
 #define EVAL_FAST
 #define PATHFLOW

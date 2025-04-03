@@ -36,6 +36,13 @@ add_executable(main
 target_link_libraries(main ${ROOT_LIBRARIES})
 target_link_libraries(main fitF)
 
+
+add_executable(mainT12fit
+    ${sources} ${headers}
+    mainT12fit.cc)
+target_link_libraries(mainT12fit ${ROOT_LIBRARIES})
+target_link_libraries(mainT12fit fitF)
+
 add_executable(mainbinfit
     ${sources} ${headers}
     mainbinfit.cc)

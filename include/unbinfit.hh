@@ -35,6 +35,7 @@
 #include "RooGaussian.h"
 #include "RooConstVar.h"
 #include "RooFitResult.h"
+#include "RooPolynomial.h"
 
 #include "RooCurve.h"
 #include "RooHist.h"
@@ -129,6 +130,9 @@ class unbinfit
         }
     }
 
+    void setFitOpt(Int_t fitOpt){
+        ffitopt = fitOpt;
+    }
  private:
     void setModel();
     void calculateChiSquare(Int_t opt=0);
@@ -164,10 +168,16 @@ class unbinfit
     fitFbkg* bkgmodelneg;
     fitFbkg* bkgmodelpos;
 
+
+    RooPolynomial* bkgmodelnegT12;
+    RooPolynomial* bkgmodelposT12;
+
     //! fit paramters
     // Declare all parameters
     RooAbsReal* p[kmaxparms];//fdecaypath->getNMember()*5+4];
     RooRealVar* pvar[kmaxparms];//[fdecaypath->getNMember()*5+4];
+
+    RooAbsReal* pT12[kmaxparms];
     RooRealVar* nbkg;
     RooRealVar* nsig;
 
@@ -180,11 +190,23 @@ class unbinfit
     RooAddPdf* final_pdf;
 
 
+    fitF_T12* totdecaymodelT12;
+    RooAddPdf* final_pdfT12;
+
+    double upperLimit;
+    double significance;
+
+
+
     //! data sets
     TTree* tree;
     TTree* treeb;
     RooDataSet* databkg; //background data
     RooDataSet* data;
+
+    RooDataSet* t12databkg; //background data
+    RooDataSet* t12data;
+
 
     //! fit results
     RooFitResult* fitres;

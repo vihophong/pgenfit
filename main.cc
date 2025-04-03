@@ -60,13 +60,13 @@ int main(int argc, char *argv[])
     }else if (argc==10){
         unbinfit* fit=new unbinfit;
         fit->setStartTime(atof(argv[4]));
+        fit->setTimeRange(atof(argv[9]));
         fit->setNBinHists(atoi(argv[5]));
         fit->SetRandomSeed(atoi(argv[8]));//must be set before Init
         fit->Init(argv[1],argv[2]);
         fit->setOutputFile(argv[3]);
         fit->setNumberOfMC(atoi(argv[6]));
         fit->setInputEffParms(argv[7]);
-        fit->setTimeRange(atof(argv[9]));
         fit->Run();
     }else{
         std::cout<<"check inputs!"<<std::endl;
