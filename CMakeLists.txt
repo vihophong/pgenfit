@@ -69,6 +69,8 @@ target_link_libraries(simulation fitF)
 set(PROJ_DATA
   simparmsex.txt
   parmsex.txt
+  parmsex.txt_effparms
+  simulation_fit.sh
   effparmsex.txt
   testdata.root
   tdiffdataex.root
@@ -79,6 +81,14 @@ set(PROJ_DATA
   runsinglefit.sh
   runbenchmark.sh
   rununbinfit_multithreads.sh
+  hdx.root
+  hdy.root
+  himpx.root
+  himpy.root
+  hx.root
+  hy.root
+  hx.root
+  runsinglefitT12.sh
   )
 
 
