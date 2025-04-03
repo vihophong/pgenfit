@@ -1226,7 +1226,7 @@ void unbinfit::calculateChiSquare(Int_t opt){
             chisquare+=chisquarei;
         }
         chisquare=2*chisquare;
-        chiSquareNDF=chisquare/(model0nHist->GetN()+fitres->floatParsFinal().getSize());
+        chiSquareNDF=chisquare/(model0nHist->GetN()-fitres->floatParsFinal().getSize());
     }else{
         Int_t k=0;
         for (Int_t i=0;i<hB->GetNbinsX();i++){
@@ -1253,7 +1253,7 @@ void unbinfit::calculateChiSquare(Int_t opt){
             chisquare1n+=chisquarei;
         }
         chisquare1n=2*chisquare1n;
-        chiSquareNDF1n=chisquare1n/(model1nHist->GetN()+fitres->floatParsFinal().getSize());
+        chiSquareNDF1n=chisquare1n/(model1nHist->GetN()-fitres->floatParsFinal().getSize());
     }else{
         Int_t k=0;
         for (Int_t i=0;i<hSB->GetNbinsX();i++){
@@ -1280,7 +1280,7 @@ void unbinfit::calculateChiSquare(Int_t opt){
             chisquare2n+=chisquarei;
         }
         chisquare2n=2*chisquare2n;
-        chiSquareNDF2n=chisquare2n/(model2nHist->GetN()+fitres->floatParsFinal().getSize());
+        chiSquareNDF2n=chisquare2n/(model2nHist->GetN()-fitres->floatParsFinal().getSize());
     }else{
         Int_t k=0;
         for (Int_t i=0;i<hSB2->GetNbinsX();i++){
@@ -1399,11 +1399,11 @@ void unbinfit::plotResultsMore(Int_t opt)
 
     fB_parent->SetLineWidth(3);
     fB_parent->SetLineColor(2);
-    fB_parent->SetLineStyle(9);
+    fB_parent->SetLineStyle(1);
     fB_parent->Draw("same");
     fB_daugter->SetLineWidth(3);
     fB_daugter->SetLineColor(6);
-    fB_daugter->SetLineStyle(10);
+    fB_daugter->SetLineStyle(1);
     fB_daugter->Draw("same");
     fB_bkgneg->SetLineWidth(3);
     fB_bkgneg->SetLineColor(4);
@@ -1434,7 +1434,7 @@ void unbinfit::plotResultsMore(Int_t opt)
         }
         chisquare=2*chisquare;
         cout<<"ndf="<<fitres->floatParsFinal().getSize()<<endl;
-        chiSquareNDF=chisquare/(model0nHist->GetN()+fitres->floatParsFinal().getSize());
+        chiSquareNDF=chisquare/(model0nHist->GetN()-fitres->floatParsFinal().getSize());
         cout<<"chisquare/ndf="<<chiSquareNDF<<endl;
         resplot_0n=new TGraphErrors(model0nHist->GetN(),xres,yres,0,yreserr);
         for (Int_t i=0;i<modelbkg0nHist->GetN();i++){
@@ -1569,11 +1569,11 @@ void unbinfit::plotResultsMore(Int_t opt)
 
     fSB_c23->SetLineWidth(3);
     fSB_c23->SetLineColor(2);
-    fSB_c23->SetLineStyle(9);
+    fSB_c23->SetLineStyle(1);
     fSB_c23->Draw("same");
     fSB_c1->SetLineWidth(3);
     fSB_c1->SetLineColor(6);
-    fSB_c1->SetLineStyle(10);
+    fSB_c1->SetLineStyle(1);
     fSB_c1->Draw("same");
     fSB_bkgneg->SetLineWidth(3);
     fSB_bkgneg->SetLineColor(4);
@@ -1599,7 +1599,7 @@ void unbinfit::plotResultsMore(Int_t opt)
         }
         chisquare1n=2*chisquare1n;
         cout<<"ndf="<<fitres->floatParsFinal().getSize()<<endl;
-        chiSquareNDF1n=chisquare1n/(model1nHist->GetN()+fitres->floatParsFinal().getSize());
+        chiSquareNDF1n=chisquare1n/(model1nHist->GetN()-fitres->floatParsFinal().getSize());
         cout<<"chisquare/ndf="<<chiSquareNDF1n<<endl;
 
         resplot_1n=new TGraphErrors(model1nHist->GetN(),xres,yres,0,yreserr);
@@ -1731,11 +1731,11 @@ void unbinfit::plotResultsMore(Int_t opt)
 
     fSB2_c2->SetLineWidth(3);
     fSB2_c2->SetLineColor(2);
-    fSB2_c2->SetLineStyle(9);
+    fSB2_c2->SetLineStyle(1);
     fSB2_c2->Draw("same");
     fSB2_c134->SetLineWidth(3);
     fSB2_c134->SetLineColor(6);
-    fSB2_c134->SetLineStyle(10);
+    fSB2_c134->SetLineStyle(1);
     fSB2_c134->Draw("same");
     fSB2_bkgneg->SetLineWidth(3);
     fSB2_bkgneg->SetLineColor(4);
@@ -1759,7 +1759,7 @@ void unbinfit::plotResultsMore(Int_t opt)
             chisquare2n+=chisquarei;
         }
         chisquare2n=2*chisquare2n;
-        chiSquareNDF2n=chisquare2n/(model2nHist->GetN()+fitres->floatParsFinal().getSize());
+        chiSquareNDF2n=chisquare2n/(model2nHist->GetN()-fitres->floatParsFinal().getSize());
         resplot_2n=new TGraphErrors(model2nHist->GetN(),xres,yres,0,yreserr);
         for (Int_t i=0;i<modelbkg2nHist->GetN();i++){
             Double_t xi=modelbkg2nHist->GetX()[i];
