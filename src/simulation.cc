@@ -104,11 +104,6 @@ void simulation::BookSimulationTree()
 
 void simulation::BookCorrelationTree()
 {
-    fdeltaxy=2.;
-    fionbetawindowlow=10;
-    fionbetawindowup=20;
-    fwindowbetaneutronlow=400000./1e9;
-    fwindowbetaneutronup=400000./1e9;
 
     ftreemlh=new TTree("tree","tree");
     ftreemlh->Branch("x",&fmlh_t,"x/D");
@@ -163,6 +158,13 @@ void simulation::bookTDiffData(){
 
 void simulation::readSimulationParameters(char *inputfile)
 {
+
+    fdeltaxy=2.;
+    fionbetawindowlow=10;
+    fionbetawindowup=20;
+    fwindowbetaneutronlow=400000./1e9;
+    fwindowbetaneutronup=400000./1e9;
+
     std::ifstream ifscond(inputfile);
     std::string line;
 
@@ -207,10 +209,11 @@ void simulation::readSimulationParameters(char *inputfile)
         if (line_head=="yimpsigma") fsimparms.yimpsigma=line_val;
 
         if (line_head=="deltaxylimit") fsimparms.deltaxy=line_val;
+        if (line_head=="deltaxycorr") fdeltaxy=line_val;
         if (line_head=="dxbetamean") fsimparms.dxbetamean=line_val;
         if (line_head=="dxbetasigma") fsimparms.dxbetasigma=line_val;
-        if (line_head=="dybetamean") fsimparms.dxbetamean=line_val;
-        if (line_head=="dybetasigma") fsimparms.dxbetasigma=line_val;
+        if (line_head=="dybetamean") fsimparms.dybetamean=line_val;
+        if (line_head=="dybetasigma") fsimparms.dybetasigma=line_val;
 
 
         if (line_head=="xbetabkgmean") fsimparms.xbetabkgmean=line_val;
@@ -266,6 +269,7 @@ void simulation::readSimulationParameters(char *inputfile)
 
     cout<<"Offset time stamp = "<<fsimparms.tsoffset<<endl;
     cout<<"Percentage of neutron correlated with beam = "<<fsimparms.neuwbeamperctg<<endl;
+    cout<<"Corelation area= "<<fdeltaxy<<endl;
 
     cout<<"*****************\n"<<endl;
 
@@ -321,6 +325,10 @@ void simulation::registerDecay(MemberDef* decaymember,Int_t pathid,Double_t deca
         dxbeta=hhdx->GetRandom();
         dybeta=hhdy->GetRandom();
     }
+    if (dxbeta>fsimparms.deltaxy)
+        dxbeta = fsimparms.deltaxy;
+    if (dybeta>fsimparms.deltaxy)
+        dybeta = fsimparms.deltaxy;
 
     Double_t xbeta=dxbeta+fximp;
     Double_t ybeta=dybeta+fyimp;

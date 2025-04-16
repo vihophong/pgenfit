@@ -196,7 +196,8 @@ void unbinfit::fitBackground(Int_t opt)
     bkgmodelnegT12= new RooPolynomial("bkgmodelnegT12","bkgmodelnegT12",*xbkg,RooArgList(slope1));
     // fit background
 #ifdef GPUMODE
-    if (opt==0) bkgmodelneg->fitTo(*databkg,BatchMode("cuda"),Save()) ;
+    if (ffitopt!=2)
+        if (opt==0) bkgmodelneg->fitTo(*databkg,BatchMode("cuda"),Save()) ;
     if (opt==0) bkgmodelnegT12->fitTo(*databkg,BatchMode("cuda"),Save()) ;
 #else
     if (opt==0) bkgmodelneg->fitTo(*databkg,NumCPU(ncpu),Save()) ;
@@ -395,9 +396,10 @@ void unbinfit::initFitParameters()
     Double_t nnsig=tree->Draw("",Form("x>%f&&x<%f",p_deadtime,p_timerange),"goff");
     Double_t nnbkg=tree->Draw("",Form("x<%f&&x>%f",-p_deadtime,-p_timerange),"goff");
     nnsig=nnsig-nnbkg;
-
+    if (nnsig<0)
+        nnsig = 10.;
     nbkg=new RooRealVar("nbkg","nbkg",nnbkg,nnbkg/3,nnbkg*3);
-    nsig=new RooRealVar("nsig","nsig",nnsig,nnsig/5,nnsig*5);
+    nsig=new RooRealVar("nsig","nsig",nnsig,0,nnsig*5);
     //nsig=new RooRealVar("nsig","nsig",1.4751e+04,1.2751e+04,1.6751e+04);
 
     cout<<"NSIG = "<<nnsig<<endl;
@@ -799,13 +801,9 @@ void unbinfit::doFit()
         fitres=final_pdf->fitTo(*data,ExternalConstraints(*externalconstrains),NumCPU(ncpu),Save(kTRUE),PrintLevel(3));
 #endif
     }else{//fit T1/2 only, gpu mode not support for now
+
+        std::cout<<pvar[0]->getVal()<<std::endl;
         fitres=final_pdfT12->fitTo(*t12data,NumCPU(ncpu),Save(kTRUE),PrintLevel(3));
-        ProfileLikelihoodCalculator plc(*t12data, *final_pdfT12, RooArgSet(*nsig));
-        LikelihoodInterval* interval = plc.GetInterval();
-        upperLimit = interval->UpperLimit(*nsig);
-        cout << "Upper Limit on nsig: " << upperLimit << endl;
-        significance = upperLimit / nsig->getError();  // Approximate significance
-        cout << "Signal significance (Profile Likelihood): " << significance << " sigma" << endl;
 
 //        fitres=final_pdfT12->fitTo(*t12data,BatchMode("cuda"));
     }
@@ -836,71 +834,72 @@ void unbinfit::plotResults()
     c1->cd(1);
     RooPlot* xframe0 = x->frame(Title("all fit")) ;
     if (ffitopt==2){
-        data->plotOn(xframe0,Binning(nbinsHB/2),RooFit::Name("data0n")) ;
-        binw=(p_timerange-p_deadtime)/nbinsHB*2;
-        final_pdf->plotOn(xframe0,RooFit::Name("data0nmodel")) ;
-    }else{
         t12data->plotOn(xframe0,Binning(nbinsHB/2),RooFit::Name("data0n")) ;
         binw=(p_timerange-p_deadtime)/nbinsHB*2;
         final_pdfT12->plotOn(xframe0,RooFit::Name("data0nmodel")) ;
+
+    }else{
+        data->plotOn(xframe0,Binning(nbinsHB/2),RooFit::Name("data0n")) ;
+        binw=(p_timerange-p_deadtime)/nbinsHB*2;
+        final_pdf->plotOn(xframe0,RooFit::Name("data0nmodel")) ;
     }
-    //bkgmodelpos->plotOn(xframe0,RooFit::Name("bkg0nposmodel")) ;
+//    //bkgmodelpos->plotOn(xframe0,RooFit::Name("bkg0nposmodel")) ;
     xframe0->Draw() ;
-    c1->cd(3);
-    RooPlot* xframe1 = x->frame(Title("1 neutron fit")) ;
-    data->plotOn(xframe1,Cut("y==y::1neu"),Binning(nbinsHSB/2),RooFit::Name("data1n")) ;
-    final_pdf->plotOn(xframe1,Slice(*y,"1neu"),RooFit::Name("data1nmodel")) ;
-    //bkgmodelpos->plotOn(xframe1,Slice(*y,"1neu"),RooFit::Name("bkg1nposmodel")) ;
-    xframe1->Draw() ;
-    c1->cd(5);
-    RooPlot* xframe2 = x->frame(Title("2 neutron fit")) ;
-    data->plotOn(xframe2,Cut("y==y::2neu"),Binning(nbinsHSB2/2),RooFit::Name("data2n")) ;
-    final_pdf->plotOn(xframe2,Slice(*y,"2neu"),RooFit::Name("data2nmodel")) ;
-    //bkgmodelpos->plotOn(xframe2,Slice(*y,"2neu"),RooFit::Name("bkg2nposmodel")) ;
-    xframe2->Draw() ;
+//    c1->cd(3);
+//    RooPlot* xframe1 = x->frame(Title("1 neutron fit")) ;
+//    data->plotOn(xframe1,Cut("y==y::1neu"),Binning(nbinsHSB/2),RooFit::Name("data1n")) ;
+//    final_pdf->plotOn(xframe1,Slice(*y,"1neu"),RooFit::Name("data1nmodel")) ;
+//    //bkgmodelpos->plotOn(xframe1,Slice(*y,"1neu"),RooFit::Name("bkg1nposmodel")) ;
+//    xframe1->Draw() ;
+//    c1->cd(5);
+//    RooPlot* xframe2 = x->frame(Title("2 neutron fit")) ;
+//    data->plotOn(xframe2,Cut("y==y::2neu"),Binning(nbinsHSB2/2),RooFit::Name("data2n")) ;
+//    final_pdf->plotOn(xframe2,Slice(*y,"2neu"),RooFit::Name("data2nmodel")) ;
+//    //bkgmodelpos->plotOn(xframe2,Slice(*y,"2neu"),RooFit::Name("bkg2nposmodel")) ;
+//    xframe2->Draw() ;
 
     c1->cd(2);
     RooPlot* xframe3 = xbkg->frame(Title("all fit bkg")) ;
     databkg->plotOn(xframe3,Binning(nbinsHB/2),RooFit::Name("bkg0n")) ;
     xframe3->Draw() ;
 
-    c1->cd(4);
-    RooPlot* xframe4 = xbkg->frame(Title("1 neutron fit bkg")) ;
-    databkg->plotOn(xframe4,Cut("y==y::1neu"),Binning(nbinsHSB/2),RooFit::Name("bkg1n")) ;
-    xframe4->Draw() ;
+//    c1->cd(4);
+//    RooPlot* xframe4 = xbkg->frame(Title("1 neutron fit bkg")) ;
+//    databkg->plotOn(xframe4,Cut("y==y::1neu"),Binning(nbinsHSB/2),RooFit::Name("bkg1n")) ;
+//    xframe4->Draw() ;
 
-    c1->cd(6);
-    RooPlot* xframe5 = xbkg->frame(Title("2 neutron fit bkg")) ;
-    databkg->plotOn(xframe5,Cut("y==y::2neu"),Binning(nbinsHSB2/2),RooFit::Name("bkg2n")) ;
-    xframe5->Draw() ;
+//    c1->cd(6);
+//    RooPlot* xframe5 = xbkg->frame(Title("2 neutron fit bkg")) ;
+//    databkg->plotOn(xframe5,Cut("y==y::2neu"),Binning(nbinsHSB2/2),RooFit::Name("bkg2n")) ;
+//    xframe5->Draw() ;
     c1->Write();
 
     model0nCurve=(RooCurve*)xframe0->getCurve("data0nmodel");
     model0nHist=(RooHist*)xframe0->getHist("data0n");
-    model1nCurve=(RooCurve*)xframe1->getCurve("data1nmodel");
-    model1nHist=(RooHist*)xframe1->getHist("data1n");
-    model2nCurve=(RooCurve*)xframe2->getCurve("data2nmodel");
-    model2nHist=(RooHist*)xframe2->getHist("data2n");
+//    model1nCurve=(RooCurve*)xframe1->getCurve("data1nmodel");
+//    model1nHist=(RooHist*)xframe1->getHist("data1n");
+//    model2nCurve=(RooCurve*)xframe2->getCurve("data2nmodel");
+//    model2nHist=(RooHist*)xframe2->getHist("data2n");
 
     modelbkg0nHist=(RooHist*)xframe3->getHist("bkg0n");
-    modelbkg1nHist=(RooHist*)xframe4->getHist("bkg1n");
-    modelbkg2nHist=(RooHist*)xframe5->getHist("bkg2n");
+//    modelbkg1nHist=(RooHist*)xframe4->getHist("bkg1n");
+//    modelbkg2nHist=(RooHist*)xframe5->getHist("bkg2n");
 
     model0nHist->Write();
-    model1nHist->Write();
-    model2nHist->Write();
+//    model1nHist->Write();
+//    model2nHist->Write();
     model0nCurve->Write();
-    model1nCurve->Write();
-    model2nCurve->Write();
+//    model1nCurve->Write();
+//    model2nCurve->Write();
 
     modelbkg0nHist->Write();
-    modelbkg1nHist->Write();
-    modelbkg2nHist->Write();
+//    modelbkg1nHist->Write();
+//    modelbkg2nHist->Write();
 
-    //!******************************************
-    //! Plotting components using bin fit
-    //! *****************************************
-    //! fix bkg parms for binned model from result of backward fit
+//    //!******************************************
+//    //! Plotting components using bin fit
+//    //! *****************************************
+//    //! fix bkg parms for binned model from result of backward fit
     Double_t bkg1nratioval=bkg1nratio->getVal();
     Double_t bkg2nratioval=bkg2nratio->getVal();
     Double_t slope1posval=slope1pos->getVal();
@@ -914,23 +913,23 @@ void unbinfit::plotResults()
     Double_t b2=(2*nbkg->getVal()*bkg1nratioval*bkg2nratioval-a2*p_timerange*p_timerange)/2/p_timerange*(p_timerange/nbinsHB*2);
 
     fB_bkgpos->FixParameter(0,b0);
-    fSB_bkgpos->FixParameter(0,b1);
-    fSB2_bkgpos->FixParameter(0,b2);
+//    fSB_bkgpos->FixParameter(0,b1);
+//    fSB2_bkgpos->FixParameter(0,b2);
     fB_bkgpos->FixParameter(1,a0);
-    fSB_bkgpos->FixParameter(1,a1);
-    fSB2_bkgpos->FixParameter(1,a2);
+//    fSB_bkgpos->FixParameter(1,a1);
+//    fSB2_bkgpos->FixParameter(1,a2);
 
     fB_bkgneg->FixParameter(0,b0);
-    fSB_bkgneg->FixParameter(0,b1);
-    fSB2_bkgneg->FixParameter(0,b2);
-    fB_bkgneg->FixParameter(1,-a0);
-    fB_bkgneg->FixParameter(1,-a1);
-    fB_bkgneg->FixParameter(1,-a2);
+//    fSB_bkgneg->FixParameter(0,b1);
+//    fSB2_bkgneg->FixParameter(0,b2);
+//    fB_bkgneg->FixParameter(1,-a0);
+//    fB_bkgneg->FixParameter(1,-a1);
+//    fB_bkgneg->FixParameter(1,-a2);
 
     totdecaymodelforplot=new fitF("totdecaymodelforplot","totdecaymodelforplot",*x,*y,p);
     totdecaymodelforplot->initPath();
     fB=new TF1("fB",totdecaymodelforplot,&fitF::fcndecay,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay");
-    //! set fix parameters
+//    //! set fix parameters
     nsig_hB_firstbin=model0nCurve->Eval(p_deadtime)-fB_bkgpos->Eval(p_deadtime);
     for (int i=0;i<fdecaypath->getNMember()*5+8;i++){
         if (i!=fdecaypath->getNMember()*5) {
@@ -942,47 +941,48 @@ void unbinfit::plotResults()
     }
     fB->FixParameter(fdecaypath->getNMember()*5+8,b0);
     fB->FixParameter(fdecaypath->getNMember()*5+9,a0);
+//    fB->Write();
+//    fSB=new TF1("fSB",totdecaymodelforplot,&fitF::fcndecay1n,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay1n");
+//    for (int i=0;i<fdecaypath->getNMember()*5+8;i++){
+//        fSB->FixParameter(i,pvar[i]->getVal());
+//    }
+//    fSB->FixParameter(fdecaypath->getNMember()*5+8,b1);
+//    fSB->FixParameter(fdecaypath->getNMember()*5+9,a1);
 
-    fSB=new TF1("fSB",totdecaymodelforplot,&fitF::fcndecay1n,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay1n");
-    for (int i=0;i<fdecaypath->getNMember()*5+8;i++){
-        fSB->FixParameter(i,pvar[i]->getVal());
-    }
-    fSB->FixParameter(fdecaypath->getNMember()*5+8,b1);
-    fSB->FixParameter(fdecaypath->getNMember()*5+9,a1);
+//    fSB2=new TF1("fSB2",totdecaymodelforplot,&fitF::fcndecay2n,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay2n");
+//    for (int i=0;i<fdecaypath->getNMember()*5+8;i++){
+//        fSB2->FixParameter(i,pvar[i]->getVal());
+//    }
+//    fSB2->FixParameter(fdecaypath->getNMember()*5+8,b2);
+//    fSB2->FixParameter(fdecaypath->getNMember()*5+9,a2);
 
-    fSB2=new TF1("fSB2",totdecaymodelforplot,&fitF::fcndecay2n,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay2n");
-    for (int i=0;i<fdecaypath->getNMember()*5+8;i++){
-        fSB2->FixParameter(i,pvar[i]->getVal());
-    }
-    fSB2->FixParameter(fdecaypath->getNMember()*5+8,b2);
-    fSB2->FixParameter(fdecaypath->getNMember()*5+9,a2);
+//    model0nCurve->Fit(fB,"LEQR","goff");
+//    model0nCurve->GetFunction("fB")->SetLineWidth(0);
 
-    model0nCurve->Fit(fB,"LEQR","goff");
-    model0nCurve->GetFunction("fB")->SetLineWidth(0);
+//    //fB->FixParameter(fdecaypath->getNMember()*5,nsig_hB_firstbin);
+//    fSB->FixParameter(fdecaypath->getNMember()*5,fB->GetParameter(fdecaypath->getNMember()*5));
+//    fSB2->FixParameter(fdecaypath->getNMember()*5,fB->GetParameter(fdecaypath->getNMember()*5));
 
-    //fB->FixParameter(fdecaypath->getNMember()*5,nsig_hB_firstbin);
-    fSB->FixParameter(fdecaypath->getNMember()*5,fB->GetParameter(fdecaypath->getNMember()*5));
-    fSB2->FixParameter(fdecaypath->getNMember()*5,fB->GetParameter(fdecaypath->getNMember()*5));
-
-    //! construct parent/daugters decay components for plotting demonstration
+//    //! construct parent/daugters decay components for plotting demonstration
     fB_parent=new TF1("fB_parent",totdecaymodelforplot,&fitF::fcndecay_parent,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay_parent");
     fB_daugter=new TF1("fB_daugter",totdecaymodelforplot,&fitF::fcndecay_daugter,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay_daugter");
+//    fB_parent->Write();
+//    fB->Write();
+//    fSB_parent=new TF1("fSB_parent",totdecaymodelforplot,&fitF::fcndecay1n_parent,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay1n_parent");
+//    fSB_daugter=new TF1("fSB_daugter",totdecaymodelforplot,&fitF::fcndecay1n_daugter,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay1n_daugter");
 
-    fSB_parent=new TF1("fSB_parent",totdecaymodelforplot,&fitF::fcndecay1n_parent,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay1n_parent");
-    fSB_daugter=new TF1("fSB_daugter",totdecaymodelforplot,&fitF::fcndecay1n_daugter,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay1n_daugter");
+//    fSB2_parent=new TF1("fSB2_parent",totdecaymodelforplot,&fitF::fcndecay2n_parent,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay2n_parent");
+//    fSB2_daugter=new TF1("fSB2_daugter",totdecaymodelforplot,&fitF::fcndecay2n_daugter,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay2n_daugter");
 
-    fSB2_parent=new TF1("fSB2_parent",totdecaymodelforplot,&fitF::fcndecay2n_parent,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay2n_parent");
-    fSB2_daugter=new TF1("fSB2_daugter",totdecaymodelforplot,&fitF::fcndecay2n_daugter,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay2n_daugter");
-
-    fSB_c1=new TF1("fSB_c1",totdecaymodelforplot,&fitF::fcndecay1n_c1,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay1n_c1");
-    fSB_c2=new TF1("fSB_c2",totdecaymodelforplot,&fitF::fcndecay1n_c2,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay1n_c2");
-    fSB_c3=new TF1("fSB_c3",totdecaymodelforplot,&fitF::fcndecay1n_c3,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay1n_c3");
-    fSB_c23=new TF1("fSB_c23",totdecaymodelforplot,&fitF::fcndecay1n_c23,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay1n_c23");
-    fSB2_c1=new TF1("fSB2_c1",totdecaymodelforplot,&fitF::fcndecay2n_c1,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay2n_c1");
-    fSB2_c2=new TF1("fSB2_c2",totdecaymodelforplot,&fitF::fcndecay2n_c2,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay2n_c2");
-    fSB2_c3=new TF1("fSB2_c3",totdecaymodelforplot,&fitF::fcndecay2n_c3,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay2n_c3");
-    fSB2_c4=new TF1("fSB2_c4",totdecaymodelforplot,&fitF::fcndecay2n_c4,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay2n_c4");
-    fSB2_c134=new TF1("fSB2_c134",totdecaymodelforplot,&fitF::fcndecay2n_c134,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay2n_c134");
+//    fSB_c1=new TF1("fSB_c1",totdecaymodelforplot,&fitF::fcndecay1n_c1,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay1n_c1");
+//    fSB_c2=new TF1("fSB_c2",totdecaymodelforplot,&fitF::fcndecay1n_c2,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay1n_c2");
+//    fSB_c3=new TF1("fSB_c3",totdecaymodelforplot,&fitF::fcndecay1n_c3,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay1n_c3");
+//    fSB_c23=new TF1("fSB_c23",totdecaymodelforplot,&fitF::fcndecay1n_c23,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay1n_c23");
+//    fSB2_c1=new TF1("fSB2_c1",totdecaymodelforplot,&fitF::fcndecay2n_c1,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay2n_c1");
+//    fSB2_c2=new TF1("fSB2_c2",totdecaymodelforplot,&fitF::fcndecay2n_c2,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay2n_c2");
+//    fSB2_c3=new TF1("fSB2_c3",totdecaymodelforplot,&fitF::fcndecay2n_c3,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay2n_c3");
+//    fSB2_c4=new TF1("fSB2_c4",totdecaymodelforplot,&fitF::fcndecay2n_c4,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay2n_c4");
+//    fSB2_c134=new TF1("fSB2_c134",totdecaymodelforplot,&fitF::fcndecay2n_c134,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay2n_c134");
 
     writeFitComponents();
 
@@ -1004,8 +1004,8 @@ void unbinfit::writeResults()
     ofs<<"nsig = "<<nsig->getVal()<<"\tnbkg = "<<nbkg->getVal()<<std::endl;
     ofs<<"chisquare/NDF = "<<chiSquareNDF<<"\t"<<chiSquareNDF1n<<"\t"<<chiSquareNDF2n<<std::endl;
     ofs<<"FitTime = "<<fFitTime<<endl;
-    ofs<<"Significane = "<<significance<<endl;
     fitres->Print();
+    std::cout<<pvar[0]->getVal()<<std::endl;
     std::cout<<"Time for MC generation = "<<fMCGenTime<<std::endl;
     std::cout<<"Time for Fitting = "<<fFitTime<<std::endl;
 }
@@ -1126,7 +1126,7 @@ void unbinfit::RunBinFit()
    fitCovQual=nfreeparms+1;//fitter.Result().Ndf();
    fitNumInvalidNLL=fitter.Result().NCalls();
    fitEdm=fitter.Result().Edm();
-   fitMinNll=fitter.Result().MinFcnValue();   
+   fitMinNll=fitter.Result().MinFcnValue();
    //foutputtree->Fill();
 
    //! construct parent/daugters decay components for plotting demonstration
@@ -1200,20 +1200,20 @@ void unbinfit::writeFitComponents()
     for (int i=0;i<fdecaypath->getNMember()*5+10;i++){
         fB_parent->FixParameter(i,fB->GetParameter(i));
         fB_daugter->FixParameter(i,fB->GetParameter(i));
-        fSB_parent->FixParameter(i,fSB->GetParameter(i));
-        fSB_daugter->FixParameter(i,fSB->GetParameter(i));
-        fSB2_parent->FixParameter(i,fSB2->GetParameter(i));
-        fSB2_daugter->FixParameter(i,fSB2->GetParameter(i));
+//        fSB_parent->FixParameter(i,fSB->GetParameter(i));
+//        fSB_daugter->FixParameter(i,fSB->GetParameter(i));
+//        fSB2_parent->FixParameter(i,fSB2->GetParameter(i));
+//        fSB2_daugter->FixParameter(i,fSB2->GetParameter(i));
 
-        fSB_c1->FixParameter(i,fSB->GetParameter(i));
-        fSB_c2->FixParameter(i,fSB->GetParameter(i));
-        fSB_c3->FixParameter(i,fSB->GetParameter(i));
-        fSB_c23->FixParameter(i,fSB->GetParameter(i));
-        fSB2_c1->FixParameter(i,fSB2->GetParameter(i));
-        fSB2_c2->FixParameter(i,fSB2->GetParameter(i));
-        fSB2_c3->FixParameter(i,fSB2->GetParameter(i));
-        fSB2_c4->FixParameter(i,fSB2->GetParameter(i));
-        fSB2_c134->FixParameter(i,fSB2->GetParameter(i));
+//        fSB_c1->FixParameter(i,fSB->GetParameter(i));
+//        fSB_c2->FixParameter(i,fSB->GetParameter(i));
+//        fSB_c3->FixParameter(i,fSB->GetParameter(i));
+//        fSB_c23->FixParameter(i,fSB->GetParameter(i));
+//        fSB2_c1->FixParameter(i,fSB2->GetParameter(i));
+//        fSB2_c2->FixParameter(i,fSB2->GetParameter(i));
+//        fSB2_c3->FixParameter(i,fSB2->GetParameter(i));
+//        fSB2_c4->FixParameter(i,fSB2->GetParameter(i));
+//        fSB2_c134->FixParameter(i,fSB2->GetParameter(i));
     }
 
     fB->SetNpx(nbinsHB*10);
@@ -1221,52 +1221,52 @@ void unbinfit::writeFitComponents()
     fB_bkgpos->SetNpx(nbinsHB*10);
     fB_parent->SetNpx(nbinsHB*10);
     fB_daugter->SetNpx(nbinsHB*10);
-    fSB->SetNpx(nbinsHSB*10);
-    fSB_bkgneg->SetNpx(nbinsHSB*10);
-    fSB_bkgpos->SetNpx(nbinsHSB*10);
-    fSB_parent->SetNpx(nbinsHSB*10);
-    fSB_daugter->SetNpx(nbinsHSB*10);
-    fSB2->SetNpx(nbinsHSB2*10);
-    fSB2_bkgneg->SetNpx(nbinsHSB2*10);
-    fSB2_bkgpos->SetNpx(nbinsHSB2*10);
-    fSB2_parent->SetNpx(nbinsHSB2*10);
-    fSB2_daugter->SetNpx(nbinsHSB2*10);
-    fSB_c1->SetNpx(nbinsHB*10);
-    fSB_c2->SetNpx(nbinsHB*10);
-    fSB_c3->SetNpx(nbinsHB*10);
-    fSB_c23->SetNpx(nbinsHB*10);
-    fSB2_c1->SetNpx(nbinsHSB2*10);
-    fSB2_c2->SetNpx(nbinsHSB2*10);
-    fSB2_c3->SetNpx(nbinsHSB2*10);
-    fSB2_c4->SetNpx(nbinsHSB2*10);
-    fSB2_c134->SetNpx(nbinsHSB2*10);
+//    fSB->SetNpx(nbinsHSB*10);
+//    fSB_bkgneg->SetNpx(nbinsHSB*10);
+//    fSB_bkgpos->SetNpx(nbinsHSB*10);
+//    fSB_parent->SetNpx(nbinsHSB*10);
+//    fSB_daugter->SetNpx(nbinsHSB*10);
+//    fSB2->SetNpx(nbinsHSB2*10);
+//    fSB2_bkgneg->SetNpx(nbinsHSB2*10);
+//    fSB2_bkgpos->SetNpx(nbinsHSB2*10);
+//    fSB2_parent->SetNpx(nbinsHSB2*10);
+//    fSB2_daugter->SetNpx(nbinsHSB2*10);
+//    fSB_c1->SetNpx(nbinsHB*10);
+//    fSB_c2->SetNpx(nbinsHB*10);
+//    fSB_c3->SetNpx(nbinsHB*10);
+//    fSB_c23->SetNpx(nbinsHB*10);
+//    fSB2_c1->SetNpx(nbinsHSB2*10);
+//    fSB2_c2->SetNpx(nbinsHSB2*10);
+//    fSB2_c3->SetNpx(nbinsHSB2*10);
+//    fSB2_c4->SetNpx(nbinsHSB2*10);
+//    fSB2_c134->SetNpx(nbinsHSB2*10);
 
     fB->Write();
-    fSB->Write();
-    fSB2->Write();
+//    fSB->Write();
+//    fSB2->Write();
     fB_bkgneg->Write();
-    fSB_bkgneg->Write();
-    fSB2_bkgneg->Write();
+//    fSB_bkgneg->Write();
+//    fSB2_bkgneg->Write();
     fB_bkgpos->Write();
-    fSB_bkgpos->Write();
-    fSB2_bkgpos->Write();
+//    fSB_bkgpos->Write();
+//    fSB2_bkgpos->Write();
 
     fB_parent->Write();
     fB_daugter->Write();
-    fSB_parent->Write();
-    fSB_daugter->Write();
-    fSB2_parent->Write();
-    fSB2_daugter->Write();
+//    fSB_parent->Write();
+//    fSB_daugter->Write();
+//    fSB2_parent->Write();
+//    fSB2_daugter->Write();
 
-    fSB_c1->Write();
-    fSB_c2->Write();
-    fSB_c3->Write();
-    fSB_c23->Write();
-    fSB2_c1->Write();
-    fSB2_c2->Write();
-    fSB2_c3->Write();
-    fSB2_c4->Write();
-    fSB2_c134->Write();
+//    fSB_c1->Write();
+//    fSB_c2->Write();
+//    fSB_c3->Write();
+//    fSB_c23->Write();
+//    fSB2_c1->Write();
+//    fSB2_c2->Write();
+//    fSB2_c3->Write();
+//    fSB2_c4->Write();
+//    fSB2_c134->Write();
 }
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 void unbinfit::calculateChiSquare(Int_t opt){
@@ -1357,44 +1357,46 @@ void unbinfit::calculateChiSquare(Int_t opt){
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 void unbinfit::calculateUpperLimit()
 {
-    //! write P1n,P2n and P3n upper limit
-    char tempstr[500];
-    sprintf(tempstr,"%s.txt",foutputData);
-    std::ofstream ofs(tempstr,std::ios::app);
-
 
 
 //! Add 2023, Mar 1: integraged range reduced to only up to 20 times of half-life
     Double_t integratedTimeRange = TMath::Log(2)/fB_parent->GetParameter(0)*20;
     //! old
 //    Double_t integratedTimeRange = p_timerange;
+    //! write P1n,P2n and P3n upper limit
+    char tempstr[500];
+    sprintf(tempstr,"%s.txt",foutputData);
+    std::ofstream ofs(tempstr,std::ios::app);
+    N0b=fB_parent->Eval(0.)/pvar[0]->getVal()/binw-fB_parent->Eval(integratedTimeRange)/pvar[0]->getVal()/binw;
+    Double_t staterr_cnt =  fB_parent->Eval(0.)*nsig->getError()/nsig->getVal();
+    Double_t dN0b = fB_parent->Eval(0.) / (fB->GetParameter(0) * binw)*sqrt(pow(staterr_cnt / fB_parent->Eval(0.), 2) + pow(pvar[0]->getError() / pvar[0]->getVal(), 2));
+    Double_t dN0b_not12err = fB_parent->Eval(0.) / (fB->GetParameter(0) * binw)*staterr_cnt / fB_parent->Eval(0.);
+    ofs<<N0b<<"\t"<<dN0b<<"\t"<<N0b*nsig->getError()/nsig->getVal()<<"\t"<<dN0b_not12err<<endl;
 
-    N0b=fB_parent->Eval(p_deadtime)/fB->GetParameter(0)/binw-fB_parent->Eval(integratedTimeRange)/fB->GetParameter(0)/binw;
-
-    N0b1n=tree->Draw("",Form("x>%f&&x<%f&&y==1",p_deadtime,integratedTimeRange),"goff")-
-            tree->Draw("",Form("x>%f&&x<%f&&y==1",-integratedTimeRange,-p_deadtime),"goff")-
-            treeb->Draw("",Form("x>%f&&x<%f&&y==1",p_deadtime,integratedTimeRange),"goff")+
-            treeb->Draw("",Form("x>%f&&x<%f&&y==1",-integratedTimeRange,-p_deadtime),"goff");
-    N0b1n_bkg=tree->Draw("",Form("x>%f&&x<%f&&y==1",-integratedTimeRange,-p_deadtime),"goff")+
-            treeb->Draw("",Form("x>%f&&x<%f&&y==1",p_deadtime,integratedTimeRange),"goff")-
-            treeb->Draw("",Form("x>%f&&x<%f&&y==1",-integratedTimeRange,-p_deadtime),"goff");
-    N0b2n=tree->Draw("",Form("x>%f&&x<%f&&y==2",p_deadtime,integratedTimeRange),"goff")-
-            tree->Draw("",Form("x>%f&&x<%f&&y==2",-integratedTimeRange,-p_deadtime),"goff")-
-            treeb->Draw("",Form("x>%f&&x<%f&&y==2",p_deadtime,integratedTimeRange),"goff")+
-            treeb->Draw("",Form("x>%f&&x<%f&&y==2",-integratedTimeRange,-p_deadtime),"goff");
-    N0b2n_bkg=tree->Draw("",Form("x>%f&&x<%f&&y==2",-integratedTimeRange,-p_deadtime),"goff")+
-            treeb->Draw("",Form("x>%f&&x<%f&&y==2",p_deadtime,integratedTimeRange),"goff")-
-            treeb->Draw("",Form("x>%f&&x<%f&&y==2",-integratedTimeRange,-p_deadtime),"goff");
-    N0b3n=tree->Draw("",Form("x>%f&&x<%f&&y==3",p_deadtime,integratedTimeRange),"goff")-
-            tree->Draw("",Form("x>%f&&x<%f&&y==3",-integratedTimeRange,-p_deadtime),"goff")-
-            treeb->Draw("",Form("x>%f&&x<%f&&y==3",p_deadtime,integratedTimeRange),"goff")+
-            treeb->Draw("",Form("x>%f&&x<%f&&y==3",-integratedTimeRange,-p_deadtime),"goff");
-    N0b3n_bkg=tree->Draw("",Form("x>%f&&x<%f&&y==3",-integratedTimeRange,-p_deadtime),"goff")+
-            treeb->Draw("",Form("x>%f&&x<%f&&y==3",p_deadtime,integratedTimeRange),"goff")-
-            treeb->Draw("",Form("x>%f&&x<%f&&y==3",-integratedTimeRange,-p_deadtime),"goff");
-    ofs<<N0b<<"\t"<<N0b1n<<"\t"<<N0b2n<<"\t"<<N0b3n<<"\t"<<N0b1n_bkg<<"\t"<<N0b2n_bkg<<"\t"<<
-         N0b3n_bkg<<"\t"<<pVal[fdecaypath->getNMember()*4]<<"\t"<<pValError[fdecaypath->getNMember()*4]<<"\t"<<
-      pVal[fdecaypath->getNMember()*5+7]<<"\t"<<pValError[fdecaypath->getNMember()*5+7]<<"\t"<<integratedTimeRange<<endl;
+//    N0b1n=tree->Draw("",Form("x>%f&&x<%f&&y==1",p_deadtime,integratedTimeRange),"goff")-
+//            tree->Draw("",Form("x>%f&&x<%f&&y==1",-integratedTimeRange,-p_deadtime),"goff")-
+//            treeb->Draw("",Form("x>%f&&x<%f&&y==1",p_deadtime,integratedTimeRange),"goff")+
+//            treeb->Draw("",Form("x>%f&&x<%f&&y==1",-integratedTimeRange,-p_deadtime),"goff");
+//    N0b1n_bkg=tree->Draw("",Form("x>%f&&x<%f&&y==1",-integratedTimeRange,-p_deadtime),"goff")+
+//            treeb->Draw("",Form("x>%f&&x<%f&&y==1",p_deadtime,integratedTimeRange),"goff")-
+//            treeb->Draw("",Form("x>%f&&x<%f&&y==1",-integratedTimeRange,-p_deadtime),"goff");
+//    N0b2n=tree->Draw("",Form("x>%f&&x<%f&&y==2",p_deadtime,integratedTimeRange),"goff")-
+//            tree->Draw("",Form("x>%f&&x<%f&&y==2",-integratedTimeRange,-p_deadtime),"goff")-
+//            treeb->Draw("",Form("x>%f&&x<%f&&y==2",p_deadtime,integratedTimeRange),"goff")+
+//            treeb->Draw("",Form("x>%f&&x<%f&&y==2",-integratedTimeRange,-p_deadtime),"goff");
+//    N0b2n_bkg=tree->Draw("",Form("x>%f&&x<%f&&y==2",-integratedTimeRange,-p_deadtime),"goff")+
+//            treeb->Draw("",Form("x>%f&&x<%f&&y==2",p_deadtime,integratedTimeRange),"goff")-
+//            treeb->Draw("",Form("x>%f&&x<%f&&y==2",-integratedTimeRange,-p_deadtime),"goff");
+//    N0b3n=tree->Draw("",Form("x>%f&&x<%f&&y==3",p_deadtime,integratedTimeRange),"goff")-
+//            tree->Draw("",Form("x>%f&&x<%f&&y==3",-integratedTimeRange,-p_deadtime),"goff")-
+//            treeb->Draw("",Form("x>%f&&x<%f&&y==3",p_deadtime,integratedTimeRange),"goff")+
+//            treeb->Draw("",Form("x>%f&&x<%f&&y==3",-integratedTimeRange,-p_deadtime),"goff");
+//    N0b3n_bkg=tree->Draw("",Form("x>%f&&x<%f&&y==3",-integratedTimeRange,-p_deadtime),"goff")+
+//            treeb->Draw("",Form("x>%f&&x<%f&&y==3",p_deadtime,integratedTimeRange),"goff")-
+//            treeb->Draw("",Form("x>%f&&x<%f&&y==3",-integratedTimeRange,-p_deadtime),"goff");
+//    ofs<<N0b<<"\t"<<N0b1n<<"\t"<<N0b2n<<"\t"<<N0b3n<<"\t"<<N0b1n_bkg<<"\t"<<N0b2n_bkg<<"\t"<<
+//         N0b3n_bkg<<"\t"<<pVal[fdecaypath->getNMember()*4]<<"\t"<<pValError[fdecaypath->getNMember()*4]<<"\t"<<
+//      pVal[fdecaypath->getNMember()*5+7]<<"\t"<<pValError[fdecaypath->getNMember()*5+7]<<"\t"<<integratedTimeRange<<endl;
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -1412,10 +1414,10 @@ void unbinfit::plotResultsMore(Int_t opt)
     TPad *pad1_c0n = new TPad("pad1_c0n","pad1_c0n",0,0.3,1,1);
     TPad *pad2_c0n = new TPad("pad2_c0n","pad2_c0n",0,0,1,0.3);
     pad1_c0n->SetTopMargin(0.09);
-    pad1_c0n->SetBottomMargin(0.00001);
+    pad1_c0n->SetBottomMargin(0.1);
     pad1_c0n->SetBorderMode(0);
     //pad1_c0n->SetLogy();
-    pad2_c0n->SetTopMargin(0.00001);
+    pad2_c0n->SetTopMargin(0.1);
     pad2_c0n->SetBottomMargin(0.4);
     pad2_c0n->SetBorderMode(0);
     pad1_c0n->Draw();
@@ -1429,6 +1431,7 @@ void unbinfit::plotResultsMore(Int_t opt)
         hdummyc0n->GetYaxis()->SetTitleSize(0.06);
         hdummyc0n->GetYaxis()->SetTitleOffset(0.58);
         hdummyc0n->GetYaxis()->SetTitle("Counts");
+        hdummyc0n->GetXaxis()->SetTitle("t_{#beta} - t_{ion} (s)");
         hdummyc0n->GetYaxis()->SetLabelSize(0.05);
         //! for unbin fit
         for (Int_t i=0;i<model0nCurve->GetN();i++) if (model0nCurve->GetX()[i]<p_deadtime) npremove++; else break;
@@ -1467,429 +1470,429 @@ void unbinfit::plotResultsMore(Int_t opt)
     fB_bkgneg->Draw("same");
     pad1_c0n->Draw();
 
-    pad2_c0n->cd();
-    //!Calculate and residual plot - X2/ndf
-    Double_t chisquare=0;
-    Double_t xres[10000];
-    Double_t yres[10000];
-    Double_t yreserr[10000];
+//    pad2_c0n->cd();
+//    //!Calculate and residual plot - X2/ndf
+//    Double_t chisquare=0;
+//    Double_t xres[10000];
+//    Double_t yres[10000];
+//    Double_t yreserr[10000];
 
-    TGraphErrors * resplot_0n;
-    TGraphErrors * resplotbkg_0n;
+//    TGraphErrors * resplot_0n;
+//    TGraphErrors * resplotbkg_0n;
 
-    if (opt==0){
-        for (Int_t i=0;i<model0nHist->GetN();i++){
-            Double_t xi=model0nHist->GetX()[i];
-            Double_t yi=model0nHist->GetY()[i];
-            Double_t yeval=model0nCurve->Eval(xi);
-            Double_t reldev=yeval-yi;
-            xres[i]=xi;
-            yres[i]=reldev;
-            yreserr[i]=sqrt(yi+yeval);
-            Double_t chisquarei=yeval-yi+yi*TMath::Log(yi/yeval);
-            chisquare+=chisquarei;
-        }
-        chisquare=2*chisquare;
-        cout<<"ndf="<<fitres->floatParsFinal().getSize()<<endl;
-        chiSquareNDF=chisquare/(model0nHist->GetN()-fitres->floatParsFinal().getSize());
-        cout<<"chisquare/ndf="<<chiSquareNDF<<endl;
-        resplot_0n=new TGraphErrors(model0nHist->GetN(),xres,yres,0,yreserr);
-        for (Int_t i=0;i<modelbkg0nHist->GetN();i++){
-            Double_t xi=modelbkg0nHist->GetX()[i];
-            Double_t yi=modelbkg0nHist->GetY()[i];
-            Double_t yeval=fB_bkgneg->Eval(xi);
-            Double_t reldev=yeval-yi;
-            xres[i]=xi;
-            yres[i]=reldev;
-            yreserr[i]=sqrt(yi+yeval);
-        }
-        resplotbkg_0n=new TGraphErrors(modelbkg0nHist->GetN(),xres,yres,0,yreserr);
-    }else{
-        Int_t k=0;
-        for (Int_t i=0;i<hB->GetNbinsX();i++){
-            Double_t xi=hB->GetBinCenter(i+1);
-            Double_t yi=hB->GetBinContent(i+1);
-            if (xi>p_deadtime){
-                Double_t yeval=fB->Eval(xi);
-                Double_t reldev=yeval-yi;
-                xres[k]=xi;
-                yres[k]=reldev;
-                yreserr[k]=sqrt(yi+yeval);
-                Double_t chisquarei=yeval-yi+yi*TMath::Log(yi/yeval);
-                chisquare+=chisquarei;
-                k++;
-            }
-        }
-        chisquare=2*chisquare;
-        cout<<"k="<<k<<endl;
-        cout<<"ndf="<<fitCovQual<<endl;
-        chiSquareNDF=chisquare/(k+fitCovQual);
-        cout<<"chisquare/ndf="<<chiSquareNDF<<endl;
-        resplot_0n=new TGraphErrors(k,xres,yres,0,yreserr);
-        k=0;
-        for (Int_t i=0;i<hB->GetNbinsX();i++){
-           Double_t xi=hB->GetBinCenter(i+1);
-           Double_t yi=hB->GetBinContent(i+1);
-           if (xi<0){
-               Double_t yeval=fB_bkgneg->Eval(xi);
-               Double_t reldev=yeval-yi;
-               xres[k]=xi;
-               yres[k]=reldev;
-               yreserr[k]=sqrt(yi+yeval);
-               k++;
-           }
-       }
-        resplotbkg_0n=new TGraphErrors(k,xres,yres,0,yreserr);
-    }
+//    if (opt==0){
+//        for (Int_t i=0;i<model0nHist->GetN();i++){
+//            Double_t xi=model0nHist->GetX()[i];
+//            Double_t yi=model0nHist->GetY()[i];
+//            Double_t yeval=model0nCurve->Eval(xi);
+//            Double_t reldev=yeval-yi;
+//            xres[i]=xi;
+//            yres[i]=reldev;
+//            yreserr[i]=sqrt(yi+yeval);
+//            Double_t chisquarei=yeval-yi+yi*TMath::Log(yi/yeval);
+//            chisquare+=chisquarei;
+//        }
+//        chisquare=2*chisquare;
+//        cout<<"ndf="<<fitres->floatParsFinal().getSize()<<endl;
+//        chiSquareNDF=chisquare/(model0nHist->GetN()-fitres->floatParsFinal().getSize());
+//        cout<<"chisquare/ndf="<<chiSquareNDF<<endl;
+//        resplot_0n=new TGraphErrors(model0nHist->GetN(),xres,yres,0,yreserr);
+//        for (Int_t i=0;i<modelbkg0nHist->GetN();i++){
+//            Double_t xi=modelbkg0nHist->GetX()[i];
+//            Double_t yi=modelbkg0nHist->GetY()[i];
+//            Double_t yeval=fB_bkgneg->Eval(xi);
+//            Double_t reldev=yeval-yi;
+//            xres[i]=xi;
+//            yres[i]=reldev;
+//            yreserr[i]=sqrt(yi+yeval);
+//        }
+//        resplotbkg_0n=new TGraphErrors(modelbkg0nHist->GetN(),xres,yres,0,yreserr);
+//    }else{
+//        Int_t k=0;
+//        for (Int_t i=0;i<hB->GetNbinsX();i++){
+//            Double_t xi=hB->GetBinCenter(i+1);
+//            Double_t yi=hB->GetBinContent(i+1);
+//            if (xi>p_deadtime){
+//                Double_t yeval=fB->Eval(xi);
+//                Double_t reldev=yeval-yi;
+//                xres[k]=xi;
+//                yres[k]=reldev;
+//                yreserr[k]=sqrt(yi+yeval);
+//                Double_t chisquarei=yeval-yi+yi*TMath::Log(yi/yeval);
+//                chisquare+=chisquarei;
+//                k++;
+//            }
+//        }
+//        chisquare=2*chisquare;
+//        cout<<"k="<<k<<endl;
+//        cout<<"ndf="<<fitCovQual<<endl;
+//        chiSquareNDF=chisquare/(k+fitCovQual);
+//        cout<<"chisquare/ndf="<<chiSquareNDF<<endl;
+//        resplot_0n=new TGraphErrors(k,xres,yres,0,yreserr);
+//        k=0;
+//        for (Int_t i=0;i<hB->GetNbinsX();i++){
+//           Double_t xi=hB->GetBinCenter(i+1);
+//           Double_t yi=hB->GetBinContent(i+1);
+//           if (xi<0){
+//               Double_t yeval=fB_bkgneg->Eval(xi);
+//               Double_t reldev=yeval-yi;
+//               xres[k]=xi;
+//               yres[k]=reldev;
+//               yreserr[k]=sqrt(yi+yeval);
+//               k++;
+//           }
+//       }
+//        resplotbkg_0n=new TGraphErrors(k,xres,yres,0,yreserr);
+//    }
 
-    TH1F* hdummyc0nres=new TH1F("hdummyc0nres","",20,plotrangelow,plotrangehi);
-    hdummyc0nres->SetLineColor(1);
-    hdummyc0nres->SetLineWidth(3);
-    hdummyc0nres->Draw();
-    hdummyc0nres->GetYaxis()->SetRangeUser(resplot_0n->GetYaxis()->GetXmin(),resplot_0n->GetYaxis()->GetXmax());
+//    TH1F* hdummyc0nres=new TH1F("hdummyc0nres","",20,plotrangelow,plotrangehi);
+//    hdummyc0nres->SetLineColor(1);
+//    hdummyc0nres->SetLineWidth(3);
+//    hdummyc0nres->Draw();
+//    hdummyc0nres->GetYaxis()->SetRangeUser(resplot_0n->GetYaxis()->GetXmin(),resplot_0n->GetYaxis()->GetXmax());
 
-    hdummyc0nres->GetYaxis()->SetLabelSize(0.12);
-    hdummyc0nres->GetYaxis()->SetTitle("fit - data (counts)");
-    hdummyc0nres->GetYaxis()->SetTitleSize(0.12);
-    hdummyc0nres->GetYaxis()->SetTitleOffset(0.29);
+//    hdummyc0nres->GetYaxis()->SetLabelSize(0.12);
+//    hdummyc0nres->GetYaxis()->SetTitle("fit - data (counts)");
+//    hdummyc0nres->GetYaxis()->SetTitleSize(0.12);
+//    hdummyc0nres->GetYaxis()->SetTitleOffset(0.29);
 
-    hdummyc0nres->GetXaxis()->SetLabelSize(0.14);
-    hdummyc0nres->GetXaxis()->SetTitle("t_{#beta} - t_{ion} (s)");
-    hdummyc0nres->GetXaxis()->SetTitleSize(0.17);
-    hdummyc0nres->GetXaxis()->SetTitleOffset(0.95);
+//    hdummyc0nres->GetXaxis()->SetLabelSize(0.14);
+//    hdummyc0nres->GetXaxis()->SetTitle("t_{#beta} - t_{ion} (s)");
+//    hdummyc0nres->GetXaxis()->SetTitleSize(0.17);
+//    hdummyc0nres->GetXaxis()->SetTitleOffset(0.95);
 
-    resplot_0n->SetMarkerStyle(20);
-    resplotbkg_0n->SetMarkerStyle(20);
+//    resplot_0n->SetMarkerStyle(20);
+//    resplotbkg_0n->SetMarkerStyle(20);
 
-    resplot_0n->SetLineColor(2);
-    resplotbkg_0n->SetLineColor(2);
+//    resplot_0n->SetLineColor(2);
+//    resplotbkg_0n->SetLineColor(2);
 
-    resplot_0n->Draw("sameP");
-    resplotbkg_0n->Draw("sameP");
-    pad2_c0n->Draw();
+//    resplot_0n->Draw("sameP");
+//    resplotbkg_0n->Draw("sameP");
+//    pad2_c0n->Draw();
     c0n->Write();
 
 
-    //!canvas 1n
+//    //!canvas 1n
 
-    TCanvas* c1n=new TCanvas("c1n","c1n",1400,700);
-    TPad *pad1_c1n = new TPad("pad1_c1n","pad1_c1n",0,0.3,1,1);
-    TPad *pad2_c1n = new TPad("pad2_c1n","pad2_c1n",0,0,1,0.3);
-    pad1_c1n->SetTopMargin(0.09);
-    pad1_c1n->SetBottomMargin(0.00001);
-    pad1_c1n->SetBorderMode(0);
-    //pad1_c1n->SetLogy();
-    pad2_c1n->SetTopMargin(0.00001);
-    pad2_c1n->SetBottomMargin(0.4);
-    pad2_c1n->SetBorderMode(0);
-    pad1_c1n->Draw();
-    pad2_c1n->Draw();
-    pad1_c1n->cd();
+//    TCanvas* c1n=new TCanvas("c1n","c1n",1400,700);
+//    TPad *pad1_c1n = new TPad("pad1_c1n","pad1_c1n",0,0.3,1,1);
+//    TPad *pad2_c1n = new TPad("pad2_c1n","pad2_c1n",0,0,1,0.3);
+//    pad1_c1n->SetTopMargin(0.09);
+//    pad1_c1n->SetBottomMargin(0.00001);
+//    pad1_c1n->SetBorderMode(0);
+//    //pad1_c1n->SetLogy();
+//    pad2_c1n->SetTopMargin(0.00001);
+//    pad2_c1n->SetBottomMargin(0.4);
+//    pad2_c1n->SetBorderMode(0);
+//    pad1_c1n->Draw();
+//    pad2_c1n->Draw();
+//    pad1_c1n->cd();
 
-    if (opt==0){
-        TH1F* hdummyc1n=new TH1F("hdummy1n","",20,plotrangelow,plotrangehi);
-        hdummyc1n->Draw();
-        hdummyc1n->GetYaxis()->SetRangeUser(model1nHist->GetYaxis()->GetXmin(),model1nHist->GetYaxis()->GetXmax());
+//    if (opt==0){
+//        TH1F* hdummyc1n=new TH1F("hdummy1n","",20,plotrangelow,plotrangehi);
+//        hdummyc1n->Draw();
+//        hdummyc1n->GetYaxis()->SetRangeUser(model1nHist->GetYaxis()->GetXmin(),model1nHist->GetYaxis()->GetXmax());
 
-        hdummyc1n->GetYaxis()->SetTitleSize(0.06);
-        hdummyc1n->GetYaxis()->SetTitleOffset(0.58);
-        hdummyc1n->GetYaxis()->SetTitle("Counts");
+//        hdummyc1n->GetYaxis()->SetTitleSize(0.06);
+//        hdummyc1n->GetYaxis()->SetTitleOffset(0.58);
+//        hdummyc1n->GetYaxis()->SetTitle("Counts");
 
-        hdummyc1n->GetYaxis()->SetLabelSize(0.05);
-        //! remove several points at the begining for the model curves
-        npremove=0;
-        for (Int_t i=0;i<model1nCurve->GetN();i++) if (model1nCurve->GetX()[i]<p_deadtime) npremove++; else break;
-        for (Int_t i=0;i<npremove;i++) model1nCurve->RemovePoint(0);
-        model1nHist->SetMarkerSize(0.8);
-        modelbkg1nHist->SetMarkerSize(0.8);
-        setdataHistzero(model1nHist);
-        setdataHistzero(modelbkg1nHist);
-        model1nHist->Draw("sameP");
-        modelbkg1nHist->Draw("sameP");
-        model1nCurve->SetLineWidth(3);
-        model1nCurve->SetLineColor(4);
-        model1nCurve->Draw("same");
-    }else{
-        hSB->SetMarkerStyle(20);
-        hSB->SetMarkerSize(1.);
-        hSB->Draw("P0E");
-        hSB->GetXaxis()->SetRangeUser(plotrangelow,plotrangehi);
-        hSB->GetYaxis()->SetTitleSize(0.06);
-        hSB->GetYaxis()->SetTitleOffset(0.58);
-        hSB->GetYaxis()->SetTitle("Counts");
-        hSB->GetYaxis()->SetLabelSize(0.05);
-        fSB->SetLineWidth(3);
-        fSB->SetLineColor(4);
-        fSB->Draw("same");
-    }
-
-
-    fSB_c23->SetLineWidth(3);
-    fSB_c23->SetLineColor(2);
-    fSB_c23->SetLineStyle(9);
-    fSB_c23->Draw("same");
-    fSB_c1->SetLineWidth(3);
-    fSB_c1->SetLineColor(6);
-    fSB_c1->SetLineStyle(10);
-    fSB_c1->Draw("same");
-    fSB_bkgneg->SetLineWidth(3);
-    fSB_bkgneg->SetLineColor(4);
-    fSB_bkgneg->Draw("same");
-    pad1_c1n->Draw();
-
-    pad2_c1n->cd();
-    Double_t chisquare1n=0;
-
-    TGraphErrors * resplot_1n;
-    TGraphErrors * resplotbkg_1n;
-    if (opt==0){
-        for (Int_t i=0;i<model1nHist->GetN();i++){
-            Double_t xi=model1nHist->GetX()[i];
-            Double_t yi=model1nHist->GetY()[i];
-            Double_t yeval=model1nCurve->Eval(xi);
-            Double_t reldev=yeval-yi;
-            xres[i]=xi;
-            yres[i]=reldev;
-            yreserr[i]=sqrt(yi+yeval);
-            Double_t chisquarei=yeval-yi+yi*TMath::Log(yi/yeval);
-            chisquare1n+=chisquarei;
-        }
-        chisquare1n=2*chisquare1n;
-        cout<<"ndf="<<fitres->floatParsFinal().getSize()<<endl;
-        chiSquareNDF1n=chisquare1n/(model1nHist->GetN()-fitres->floatParsFinal().getSize());
-        cout<<"chisquare/ndf="<<chiSquareNDF1n<<endl;
-
-        resplot_1n=new TGraphErrors(model1nHist->GetN(),xres,yres,0,yreserr);
-        for (Int_t i=0;i<modelbkg1nHist->GetN();i++){
-            Double_t xi=modelbkg1nHist->GetX()[i];
-            Double_t yi=modelbkg1nHist->GetY()[i];
-            Double_t yeval=fSB_bkgneg->Eval(xi);
-            Double_t reldev=yeval-yi;
-            xres[i]=xi;
-            yres[i]=reldev;
-            yreserr[i]=sqrt(yi+yeval);
-        }
-        resplotbkg_1n=new TGraphErrors(modelbkg1nHist->GetN(),xres,yres,0,yreserr);
-    }else{
-        Int_t k=0;
-        for (Int_t i=0;i<hSB->GetNbinsX();i++){
-            Double_t xi=hSB->GetBinCenter(i+1);
-            Double_t yi=hSB->GetBinContent(i+1);
-            if (xi>p_deadtime){
-                Double_t yeval=fSB->Eval(xi);
-                Double_t reldev=yeval-yi;
-                xres[k]=xi;
-                yres[k]=reldev;
-                yreserr[k]=sqrt(yi+yeval);
-                Double_t chisquarei=yeval-yi+yi*TMath::Log(yi/yeval);
-                chisquare1n+=chisquarei;
-                k++;
-            }
-        }
-        chisquare1n=2*chisquare1n;
-        chiSquareNDF1n=chisquare1n/(k-fitCovQual);
-        cout<<"chisquare/NDF 1n="<<chiSquareNDF1n<<endl;
-        resplot_1n=new TGraphErrors(k,xres,yres,0,yreserr);
-        k=0;
-        for (Int_t i=0;i<hSB->GetNbinsX();i++){
-           Double_t xi=hSB->GetBinCenter(i+1);
-           Double_t yi=hSB->GetBinContent(i+1);
-           if (xi<0){
-               Double_t yeval=fSB_bkgneg->Eval(xi);
-               Double_t reldev=yeval-yi;
-               xres[k]=xi;
-               yres[k]=reldev;
-               yreserr[k]=sqrt(yi+yeval);
-               k++;
-           }
-       }
-        resplotbkg_1n=new TGraphErrors(k,xres,yres,0,yreserr);
-    }
+//        hdummyc1n->GetYaxis()->SetLabelSize(0.05);
+//        //! remove several points at the begining for the model curves
+//        npremove=0;
+//        for (Int_t i=0;i<model1nCurve->GetN();i++) if (model1nCurve->GetX()[i]<p_deadtime) npremove++; else break;
+//        for (Int_t i=0;i<npremove;i++) model1nCurve->RemovePoint(0);
+//        model1nHist->SetMarkerSize(0.8);
+//        modelbkg1nHist->SetMarkerSize(0.8);
+//        setdataHistzero(model1nHist);
+//        setdataHistzero(modelbkg1nHist);
+//        model1nHist->Draw("sameP");
+//        modelbkg1nHist->Draw("sameP");
+//        model1nCurve->SetLineWidth(3);
+//        model1nCurve->SetLineColor(4);
+//        model1nCurve->Draw("same");
+//    }else{
+//        hSB->SetMarkerStyle(20);
+//        hSB->SetMarkerSize(1.);
+//        hSB->Draw("P0E");
+//        hSB->GetXaxis()->SetRangeUser(plotrangelow,plotrangehi);
+//        hSB->GetYaxis()->SetTitleSize(0.06);
+//        hSB->GetYaxis()->SetTitleOffset(0.58);
+//        hSB->GetYaxis()->SetTitle("Counts");
+//        hSB->GetYaxis()->SetLabelSize(0.05);
+//        fSB->SetLineWidth(3);
+//        fSB->SetLineColor(4);
+//        fSB->Draw("same");
+//    }
 
 
-    TH1F* hdummyc1nres=new TH1F("hdummyc1nres","",20,plotrangelow,plotrangehi);
-    hdummyc1nres->SetLineColor(1);
-    hdummyc1nres->SetLineWidth(2);
-    hdummyc1nres->Draw();
-    hdummyc1nres->GetYaxis()->SetRangeUser(resplot_1n->GetYaxis()->GetXmin(),resplot_1n->GetYaxis()->GetXmax());
+//    fSB_c23->SetLineWidth(3);
+//    fSB_c23->SetLineColor(2);
+//    fSB_c23->SetLineStyle(9);
+//    fSB_c23->Draw("same");
+//    fSB_c1->SetLineWidth(3);
+//    fSB_c1->SetLineColor(6);
+//    fSB_c1->SetLineStyle(10);
+//    fSB_c1->Draw("same");
+//    fSB_bkgneg->SetLineWidth(3);
+//    fSB_bkgneg->SetLineColor(4);
+//    fSB_bkgneg->Draw("same");
+//    pad1_c1n->Draw();
 
-    hdummyc1nres->GetYaxis()->SetLabelSize(0.12);
-    hdummyc1nres->GetYaxis()->SetTitle("fit - data (counts)");
-    hdummyc1nres->GetYaxis()->SetTitleSize(0.12);
-    hdummyc1nres->GetYaxis()->SetTitleOffset(0.29);
+//    pad2_c1n->cd();
+//    Double_t chisquare1n=0;
 
-    hdummyc1nres->GetXaxis()->SetLabelSize(0.14);
-    hdummyc1nres->GetXaxis()->SetTitle("t_{#beta} - t_{ion} (s)");
-    hdummyc1nres->GetXaxis()->SetTitleSize(0.17);
-    hdummyc1nres->GetXaxis()->SetTitleOffset(0.95);
+//    TGraphErrors * resplot_1n;
+//    TGraphErrors * resplotbkg_1n;
+//    if (opt==0){
+//        for (Int_t i=0;i<model1nHist->GetN();i++){
+//            Double_t xi=model1nHist->GetX()[i];
+//            Double_t yi=model1nHist->GetY()[i];
+//            Double_t yeval=model1nCurve->Eval(xi);
+//            Double_t reldev=yeval-yi;
+//            xres[i]=xi;
+//            yres[i]=reldev;
+//            yreserr[i]=sqrt(yi+yeval);
+//            Double_t chisquarei=yeval-yi+yi*TMath::Log(yi/yeval);
+//            chisquare1n+=chisquarei;
+//        }
+//        chisquare1n=2*chisquare1n;
+//        cout<<"ndf="<<fitres->floatParsFinal().getSize()<<endl;
+//        chiSquareNDF1n=chisquare1n/(model1nHist->GetN()-fitres->floatParsFinal().getSize());
+//        cout<<"chisquare/ndf="<<chiSquareNDF1n<<endl;
 
-    resplot_1n->SetMarkerStyle(20);
-    resplotbkg_1n->SetMarkerStyle(20);
+//        resplot_1n=new TGraphErrors(model1nHist->GetN(),xres,yres,0,yreserr);
+//        for (Int_t i=0;i<modelbkg1nHist->GetN();i++){
+//            Double_t xi=modelbkg1nHist->GetX()[i];
+//            Double_t yi=modelbkg1nHist->GetY()[i];
+//            Double_t yeval=fSB_bkgneg->Eval(xi);
+//            Double_t reldev=yeval-yi;
+//            xres[i]=xi;
+//            yres[i]=reldev;
+//            yreserr[i]=sqrt(yi+yeval);
+//        }
+//        resplotbkg_1n=new TGraphErrors(modelbkg1nHist->GetN(),xres,yres,0,yreserr);
+//    }else{
+//        Int_t k=0;
+//        for (Int_t i=0;i<hSB->GetNbinsX();i++){
+//            Double_t xi=hSB->GetBinCenter(i+1);
+//            Double_t yi=hSB->GetBinContent(i+1);
+//            if (xi>p_deadtime){
+//                Double_t yeval=fSB->Eval(xi);
+//                Double_t reldev=yeval-yi;
+//                xres[k]=xi;
+//                yres[k]=reldev;
+//                yreserr[k]=sqrt(yi+yeval);
+//                Double_t chisquarei=yeval-yi+yi*TMath::Log(yi/yeval);
+//                chisquare1n+=chisquarei;
+//                k++;
+//            }
+//        }
+//        chisquare1n=2*chisquare1n;
+//        chiSquareNDF1n=chisquare1n/(k-fitCovQual);
+//        cout<<"chisquare/NDF 1n="<<chiSquareNDF1n<<endl;
+//        resplot_1n=new TGraphErrors(k,xres,yres,0,yreserr);
+//        k=0;
+//        for (Int_t i=0;i<hSB->GetNbinsX();i++){
+//           Double_t xi=hSB->GetBinCenter(i+1);
+//           Double_t yi=hSB->GetBinContent(i+1);
+//           if (xi<0){
+//               Double_t yeval=fSB_bkgneg->Eval(xi);
+//               Double_t reldev=yeval-yi;
+//               xres[k]=xi;
+//               yres[k]=reldev;
+//               yreserr[k]=sqrt(yi+yeval);
+//               k++;
+//           }
+//       }
+//        resplotbkg_1n=new TGraphErrors(k,xres,yres,0,yreserr);
+//    }
 
-    resplot_1n->SetLineColor(2);
-    resplotbkg_1n->SetLineColor(2);
 
-    resplot_1n->Draw("sameP");
-    resplotbkg_1n->Draw("sameP");
-    pad2_c1n->Draw();
-    c1n->Write();
+//    TH1F* hdummyc1nres=new TH1F("hdummyc1nres","",20,plotrangelow,plotrangehi);
+//    hdummyc1nres->SetLineColor(1);
+//    hdummyc1nres->SetLineWidth(2);
+//    hdummyc1nres->Draw();
+//    hdummyc1nres->GetYaxis()->SetRangeUser(resplot_1n->GetYaxis()->GetXmin(),resplot_1n->GetYaxis()->GetXmax());
 
-    //!canvas 2n
+//    hdummyc1nres->GetYaxis()->SetLabelSize(0.12);
+//    hdummyc1nres->GetYaxis()->SetTitle("fit - data (counts)");
+//    hdummyc1nres->GetYaxis()->SetTitleSize(0.12);
+//    hdummyc1nres->GetYaxis()->SetTitleOffset(0.29);
 
-    TCanvas* c2n=new TCanvas("c2n","c2n",1400,700);
-    TPad *pad1_c2n = new TPad("pad1_c2n","pad1_c2n",0,0.3,1,1);
-    TPad *pad2_c2n = new TPad("pad2_c2n","pad2_c2n",0,0,1,0.3);
-    pad1_c2n->SetTopMargin(0.09);
-    pad1_c2n->SetBottomMargin(0.00001);
-    pad1_c2n->SetBorderMode(0);
-    //pad1_c2n->SetLogy();
-    pad2_c2n->SetTopMargin(0.00001);
-    pad2_c2n->SetBottomMargin(0.4);
-    pad2_c2n->SetBorderMode(0);
-    pad1_c2n->Draw();
-    pad2_c2n->Draw();
-    pad1_c2n->cd();
-    if (opt==0){
-        TH1F* hdummyc2n=new TH1F("hdummy2n","",20,plotrangelow,plotrangehi);
-        hdummyc2n->Draw();
-        hdummyc2n->GetYaxis()->SetRangeUser(model2nHist->GetYaxis()->GetXmin(),model2nHist->GetYaxis()->GetXmax());
+//    hdummyc1nres->GetXaxis()->SetLabelSize(0.14);
+//    hdummyc1nres->GetXaxis()->SetTitle("t_{#beta} - t_{ion} (s)");
+//    hdummyc1nres->GetXaxis()->SetTitleSize(0.17);
+//    hdummyc1nres->GetXaxis()->SetTitleOffset(0.95);
 
-        hdummyc2n->GetYaxis()->SetTitleSize(0.06);
-        hdummyc2n->GetYaxis()->SetTitleOffset(0.58);
-        hdummyc2n->GetYaxis()->SetTitle("Counts");
+//    resplot_1n->SetMarkerStyle(20);
+//    resplotbkg_1n->SetMarkerStyle(20);
 
-        hdummyc2n->GetYaxis()->SetLabelSize(0.05);
-        //! remove several points at the begining for the model curves
-        npremove=0;
-        for (Int_t i=0;i<model2nCurve->GetN();i++) if (model2nCurve->GetX()[i]<p_deadtime) npremove++; else break;
-        for (Int_t i=0;i<npremove;i++) model2nCurve->RemovePoint(0);
-        model2nHist->SetMarkerSize(0.8);
-        modelbkg2nHist->SetMarkerSize(0.8);
-        setdataHistzero(model2nHist);
-        setdataHistzero(modelbkg2nHist);
-        model2nHist->Draw("sameP");
-        modelbkg2nHist->Draw("sameP");
-        model2nCurve->SetLineWidth(3);
-        model2nCurve->SetLineColor(4);
-        model2nCurve->Draw("same");
-    }else{
-        hSB2->SetMarkerStyle(20);
-        hSB2->SetMarkerSize(1.);
-        hSB2->Draw("P0E");
-        hSB2->GetXaxis()->SetRangeUser(plotrangelow,plotrangehi);
-        hSB2->GetYaxis()->SetTitleSize(0.06);
-        hSB2->GetYaxis()->SetTitleOffset(0.58);
-        hSB2->GetYaxis()->SetTitle("Counts");
-        hSB2->GetYaxis()->SetLabelSize(0.05);
-        fSB2->SetLineWidth(3);
-        fSB2->SetLineColor(4);
-        fSB2->Draw("same");
-    }
+//    resplot_1n->SetLineColor(2);
+//    resplotbkg_1n->SetLineColor(2);
 
-    fSB2_c2->SetLineWidth(3);
-    fSB2_c2->SetLineColor(2);
-    fSB2_c2->SetLineStyle(9);
-    fSB2_c2->Draw("same");
-    fSB2_c134->SetLineWidth(3);
-    fSB2_c134->SetLineColor(6);
-    fSB2_c134->SetLineStyle(10);
-    fSB2_c134->Draw("same");
-    fSB2_bkgneg->SetLineWidth(3);
-    fSB2_bkgneg->SetLineColor(4);
-    fSB2_bkgneg->Draw("same");
-    pad1_c2n->cd();
+//    resplot_1n->Draw("sameP");
+//    resplotbkg_1n->Draw("sameP");
+//    pad2_c1n->Draw();
+//    c1n->Write();
 
-    pad2_c2n->cd();
-    Double_t chisquare2n=0;
-    TGraphErrors * resplot_2n;
-    TGraphErrors * resplotbkg_2n;
-    if (opt==0){
-        for (Int_t i=0;i<model2nHist->GetN();i++){
-            Double_t xi=model2nHist->GetX()[i];
-            Double_t yi=model2nHist->GetY()[i];
-            Double_t yeval=model2nCurve->Eval(xi);
-            Double_t reldev=yeval-yi;
-            xres[i]=xi;
-            yres[i]=reldev;
-            yreserr[i]=sqrt(yi+yeval);
-            Double_t chisquarei=yeval-yi+yi*TMath::Log(yi/yeval);
-            chisquare2n+=chisquarei;
-        }
-        chisquare2n=2*chisquare2n;
-        chiSquareNDF2n=chisquare2n/(model2nHist->GetN()-fitres->floatParsFinal().getSize());
-        resplot_2n=new TGraphErrors(model2nHist->GetN(),xres,yres,0,yreserr);
-        for (Int_t i=0;i<modelbkg2nHist->GetN();i++){
-            Double_t xi=modelbkg2nHist->GetX()[i];
-            Double_t yi=modelbkg2nHist->GetY()[i];
-            Double_t yeval=fSB2_bkgneg->Eval(xi);
-            Double_t reldev=yeval-yi;
-            xres[i]=xi;
-            yres[i]=reldev;
-            yreserr[i]=sqrt(yi+yeval);
-        }
-        resplotbkg_2n=new TGraphErrors(modelbkg2nHist->GetN(),xres,yres,0,yreserr);
-    }else{
-        Int_t k=0;
-        for (Int_t i=0;i<hSB2->GetNbinsX();i++){
-            Double_t xi=hSB2->GetBinCenter(i+1);
-            Double_t yi=hSB2->GetBinContent(i+1);
-            if (xi>p_deadtime){
-                Double_t yeval=fSB2->Eval(xi);
-                Double_t reldev=yeval-yi;
-                xres[k]=xi;
-                yres[k]=reldev;
-                yreserr[k]=sqrt(yi+yeval);
-                Double_t chisquarei=yeval-yi+yi*TMath::Log(yi/yeval);
-                chisquare2n+=chisquarei;
-                k++;
-            }
-        }
-        chisquare2n=2*chisquare2n;
-        chiSquareNDF2n=chisquare2n/(k-fitCovQual);
-        cout<<"chisquare/NDF 2n="<<chiSquareNDF2n<<endl;
-        resplot_2n=new TGraphErrors(k,xres,yres,0,yreserr);
-        k=0;
-        for (Int_t i=0;i<hSB2->GetNbinsX();i++){
-           Double_t xi=hSB2->GetBinCenter(i+1);
-           Double_t yi=hSB2->GetBinContent(i+1);
-           if (xi<0){
-               Double_t yeval=fSB2_bkgneg->Eval(xi);
-               Double_t reldev=yeval-yi;
-               xres[k]=xi;
-               yres[k]=reldev;
-               yreserr[k]=sqrt(yi+yeval);
-               k++;
-           }
-       }
-        resplotbkg_2n=new TGraphErrors(k,xres,yres,0,yreserr);
-    }
+//    //!canvas 2n
 
-    TH1F* hdummyc2nres=new TH1F("hdummyc2nres","",20,plotrangelow,plotrangehi);
-    hdummyc2nres->SetLineColor(1);
-    hdummyc2nres->SetLineWidth(2);
-    hdummyc2nres->Draw();
-    hdummyc2nres->GetYaxis()->SetRangeUser(resplot_2n->GetYaxis()->GetXmin(),resplot_2n->GetYaxis()->GetXmax());
+//    TCanvas* c2n=new TCanvas("c2n","c2n",1400,700);
+//    TPad *pad1_c2n = new TPad("pad1_c2n","pad1_c2n",0,0.3,1,1);
+//    TPad *pad2_c2n = new TPad("pad2_c2n","pad2_c2n",0,0,1,0.3);
+//    pad1_c2n->SetTopMargin(0.09);
+//    pad1_c2n->SetBottomMargin(0.00001);
+//    pad1_c2n->SetBorderMode(0);
+//    //pad1_c2n->SetLogy();
+//    pad2_c2n->SetTopMargin(0.00001);
+//    pad2_c2n->SetBottomMargin(0.4);
+//    pad2_c2n->SetBorderMode(0);
+//    pad1_c2n->Draw();
+//    pad2_c2n->Draw();
+//    pad1_c2n->cd();
+//    if (opt==0){
+//        TH1F* hdummyc2n=new TH1F("hdummy2n","",20,plotrangelow,plotrangehi);
+//        hdummyc2n->Draw();
+//        hdummyc2n->GetYaxis()->SetRangeUser(model2nHist->GetYaxis()->GetXmin(),model2nHist->GetYaxis()->GetXmax());
 
-    hdummyc2nres->GetYaxis()->SetLabelSize(0.12);
-    hdummyc2nres->GetYaxis()->SetTitle("fit - data (counts)");
-    hdummyc2nres->GetYaxis()->SetTitleSize(0.12);
-    hdummyc2nres->GetYaxis()->SetTitleOffset(0.29);
+//        hdummyc2n->GetYaxis()->SetTitleSize(0.06);
+//        hdummyc2n->GetYaxis()->SetTitleOffset(0.58);
+//        hdummyc2n->GetYaxis()->SetTitle("Counts");
 
-    hdummyc2nres->GetXaxis()->SetLabelSize(0.14);
-    hdummyc2nres->GetXaxis()->SetTitle("t_{#beta} - t_{ion} (s)");
-    hdummyc2nres->GetXaxis()->SetTitleSize(0.17);
-    hdummyc2nres->GetXaxis()->SetTitleOffset(0.95);
+//        hdummyc2n->GetYaxis()->SetLabelSize(0.05);
+//        //! remove several points at the begining for the model curves
+//        npremove=0;
+//        for (Int_t i=0;i<model2nCurve->GetN();i++) if (model2nCurve->GetX()[i]<p_deadtime) npremove++; else break;
+//        for (Int_t i=0;i<npremove;i++) model2nCurve->RemovePoint(0);
+//        model2nHist->SetMarkerSize(0.8);
+//        modelbkg2nHist->SetMarkerSize(0.8);
+//        setdataHistzero(model2nHist);
+//        setdataHistzero(modelbkg2nHist);
+//        model2nHist->Draw("sameP");
+//        modelbkg2nHist->Draw("sameP");
+//        model2nCurve->SetLineWidth(3);
+//        model2nCurve->SetLineColor(4);
+//        model2nCurve->Draw("same");
+//    }else{
+//        hSB2->SetMarkerStyle(20);
+//        hSB2->SetMarkerSize(1.);
+//        hSB2->Draw("P0E");
+//        hSB2->GetXaxis()->SetRangeUser(plotrangelow,plotrangehi);
+//        hSB2->GetYaxis()->SetTitleSize(0.06);
+//        hSB2->GetYaxis()->SetTitleOffset(0.58);
+//        hSB2->GetYaxis()->SetTitle("Counts");
+//        hSB2->GetYaxis()->SetLabelSize(0.05);
+//        fSB2->SetLineWidth(3);
+//        fSB2->SetLineColor(4);
+//        fSB2->Draw("same");
+//    }
 
-    resplot_2n->SetMarkerStyle(20);
-    resplotbkg_2n->SetMarkerStyle(20);
+//    fSB2_c2->SetLineWidth(3);
+//    fSB2_c2->SetLineColor(2);
+//    fSB2_c2->SetLineStyle(9);
+//    fSB2_c2->Draw("same");
+//    fSB2_c134->SetLineWidth(3);
+//    fSB2_c134->SetLineColor(6);
+//    fSB2_c134->SetLineStyle(10);
+//    fSB2_c134->Draw("same");
+//    fSB2_bkgneg->SetLineWidth(3);
+//    fSB2_bkgneg->SetLineColor(4);
+//    fSB2_bkgneg->Draw("same");
+//    pad1_c2n->cd();
 
-    resplot_2n->SetLineColor(2);
-    resplotbkg_2n->SetLineColor(2);
+//    pad2_c2n->cd();
+//    Double_t chisquare2n=0;
+//    TGraphErrors * resplot_2n;
+//    TGraphErrors * resplotbkg_2n;
+//    if (opt==0){
+//        for (Int_t i=0;i<model2nHist->GetN();i++){
+//            Double_t xi=model2nHist->GetX()[i];
+//            Double_t yi=model2nHist->GetY()[i];
+//            Double_t yeval=model2nCurve->Eval(xi);
+//            Double_t reldev=yeval-yi;
+//            xres[i]=xi;
+//            yres[i]=reldev;
+//            yreserr[i]=sqrt(yi+yeval);
+//            Double_t chisquarei=yeval-yi+yi*TMath::Log(yi/yeval);
+//            chisquare2n+=chisquarei;
+//        }
+//        chisquare2n=2*chisquare2n;
+//        chiSquareNDF2n=chisquare2n/(model2nHist->GetN()-fitres->floatParsFinal().getSize());
+//        resplot_2n=new TGraphErrors(model2nHist->GetN(),xres,yres,0,yreserr);
+//        for (Int_t i=0;i<modelbkg2nHist->GetN();i++){
+//            Double_t xi=modelbkg2nHist->GetX()[i];
+//            Double_t yi=modelbkg2nHist->GetY()[i];
+//            Double_t yeval=fSB2_bkgneg->Eval(xi);
+//            Double_t reldev=yeval-yi;
+//            xres[i]=xi;
+//            yres[i]=reldev;
+//            yreserr[i]=sqrt(yi+yeval);
+//        }
+//        resplotbkg_2n=new TGraphErrors(modelbkg2nHist->GetN(),xres,yres,0,yreserr);
+//    }else{
+//        Int_t k=0;
+//        for (Int_t i=0;i<hSB2->GetNbinsX();i++){
+//            Double_t xi=hSB2->GetBinCenter(i+1);
+//            Double_t yi=hSB2->GetBinContent(i+1);
+//            if (xi>p_deadtime){
+//                Double_t yeval=fSB2->Eval(xi);
+//                Double_t reldev=yeval-yi;
+//                xres[k]=xi;
+//                yres[k]=reldev;
+//                yreserr[k]=sqrt(yi+yeval);
+//                Double_t chisquarei=yeval-yi+yi*TMath::Log(yi/yeval);
+//                chisquare2n+=chisquarei;
+//                k++;
+//            }
+//        }
+//        chisquare2n=2*chisquare2n;
+//        chiSquareNDF2n=chisquare2n/(k-fitCovQual);
+//        cout<<"chisquare/NDF 2n="<<chiSquareNDF2n<<endl;
+//        resplot_2n=new TGraphErrors(k,xres,yres,0,yreserr);
+//        k=0;
+//        for (Int_t i=0;i<hSB2->GetNbinsX();i++){
+//           Double_t xi=hSB2->GetBinCenter(i+1);
+//           Double_t yi=hSB2->GetBinContent(i+1);
+//           if (xi<0){
+//               Double_t yeval=fSB2_bkgneg->Eval(xi);
+//               Double_t reldev=yeval-yi;
+//               xres[k]=xi;
+//               yres[k]=reldev;
+//               yreserr[k]=sqrt(yi+yeval);
+//               k++;
+//           }
+//       }
+//        resplotbkg_2n=new TGraphErrors(k,xres,yres,0,yreserr);
+//    }
 
-    resplot_2n->Draw("sameP");
-    resplotbkg_2n->Draw("sameP");
-    pad2_c2n->Draw();
-    c2n->Write();
+//    TH1F* hdummyc2nres=new TH1F("hdummyc2nres","",20,plotrangelow,plotrangehi);
+//    hdummyc2nres->SetLineColor(1);
+//    hdummyc2nres->SetLineWidth(2);
+//    hdummyc2nres->Draw();
+//    hdummyc2nres->GetYaxis()->SetRangeUser(resplot_2n->GetYaxis()->GetXmin(),resplot_2n->GetYaxis()->GetXmax());
+
+//    hdummyc2nres->GetYaxis()->SetLabelSize(0.12);
+//    hdummyc2nres->GetYaxis()->SetTitle("fit - data (counts)");
+//    hdummyc2nres->GetYaxis()->SetTitleSize(0.12);
+//    hdummyc2nres->GetYaxis()->SetTitleOffset(0.29);
+
+//    hdummyc2nres->GetXaxis()->SetLabelSize(0.14);
+//    hdummyc2nres->GetXaxis()->SetTitle("t_{#beta} - t_{ion} (s)");
+//    hdummyc2nres->GetXaxis()->SetTitleSize(0.17);
+//    hdummyc2nres->GetXaxis()->SetTitleOffset(0.95);
+
+//    resplot_2n->SetMarkerStyle(20);
+//    resplotbkg_2n->SetMarkerStyle(20);
+
+//    resplot_2n->SetLineColor(2);
+//    resplotbkg_2n->SetLineColor(2);
+
+//    resplot_2n->Draw("sameP");
+//    resplotbkg_2n->Draw("sameP");
+//    pad2_c2n->Draw();
+//    c2n->Write();
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -1924,11 +1927,23 @@ void unbinfit::Run()
         printCurrentParameters();
         doFit();
         writeResultsMC();
-
         calculateChiSquare();
     }
+
     writeOutputTree();
     closeOutputFile();
+
+    //Found that this ROOSTAT calculation change final value.
+    ProfileLikelihoodCalculator plc(*t12data, *final_pdfT12, RooArgSet(*nsig));
+    LikelihoodInterval* interval = plc.GetInterval();
+    upperLimit = interval->UpperLimit(*nsig);
+    cout << "Upper Limit on nsig: " << upperLimit << endl;
+    significance = upperLimit / nsig->getError();  // Approximate significance
+    cout << "Signal significance (Profile Likelihood): " << significance << " sigma" << endl;
+    char tempstr[500];
+    sprintf(tempstr,"%s.txt",foutputData);
+    std::ofstream ofs(tempstr,std::ios::app);
+    ofs<<"Significane = "<<significance<<endl;
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......

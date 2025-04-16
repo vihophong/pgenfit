@@ -89,6 +89,7 @@ set(PROJ_DATA
   hy.root
   hx.root
   runsinglefitT12.sh
+  simulation_fit.sh
   )
 
 
