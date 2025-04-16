@@ -90,6 +90,8 @@ set(PROJ_DATA
   hx.root
   runsinglefitT12.sh
   simulation_fit.sh
+  simgetionentries.C
+  simgetionentries.sh
   )
 
 
