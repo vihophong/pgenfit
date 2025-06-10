@@ -82,6 +82,7 @@ class unbinfit
     void setEntriesLimit(Long64_t entries){fnentrieslimit = entries;}
     void setStartTime(double deadtime){p_deadtime=deadtime;}
     void setTimeRange(double timerange){p_timerange = timerange;}
+    void setPlotTimeRange(double mplotrangelow,double mplotrangehi) {plotrangehi=mplotrangehi;plotrangelow = mplotrangelow;}
     void Run();
     void RunBinFit();
 
@@ -306,7 +307,9 @@ class unbinfit
     RooCurve* model2nCurve;
     RooHist* model2nHist;
 
+    RooPlot* xframe4;
     RooCurve* modelbkg0nCurve;
+    RooCurve* modelbkg0nCurvePositive;
     RooHist* modelbkg0nHist;
     RooCurve* modelbkg1nCurve;
     RooHist* modelbkg1nHist;

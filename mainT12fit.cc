@@ -71,6 +71,19 @@ int main(int argc, char *argv[])
         fit->setNumberOfMC(atoi(argv[6]));
         fit->setInputEffParms(argv[7]);
         fit->Run();
+    }else if (argc==11){
+        unbinfit* fit=new unbinfit;
+        fit->setFitOpt(2);
+        fit->setStartTime(atof(argv[4]));
+        fit->setPlotTimeRange(atof(argv[9]),atof(argv[10]));
+        fit->setNBinHists(atoi(argv[5]));
+        fit->SetRandomSeed(atoi(argv[8]));//must be set before Init
+        fit->Init(argv[1],argv[2]);
+        fit->setOutputFile(argv[3]);
+        fit->setNumberOfMC(atoi(argv[6]));
+        fit->setInputEffParms(argv[7]);
+        fit->Run();
+//        cout<<atof(argv[9])<<"\t"<<atof(argv[10])<<endl;
     }else{
         std::cout<<"check inputs!"<<std::endl;
         std::cout<<"example: ./runsinglefit.sh parms/Cd133parms.txt lowin/Cd133.root outFit/Cd133out_unbin_withMC.root 0.08 500 525 effparmsex.txt 4357"<<std::endl;

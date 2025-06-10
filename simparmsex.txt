@@ -9,7 +9,7 @@ isfiximppos 0
 #If we choose beta background from histogram (hx.root and hy.root)
 ishistgausbkg 0
 #Beam time (add 1 at the begining to have more)
-beamtime 600
+beamtime 3600
 #Beam rate rate
 beamrate 6.08889
 #Isotope percentage

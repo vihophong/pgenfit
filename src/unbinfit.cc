@@ -20,12 +20,13 @@
 #include "RooStats/HypoTestInverter.h"
 #include "RooStats/AsymptoticCalculator.h"
 #include "RooStats/LikelihoodInterval.h"
-
+#include "RooStats/FrequentistCalculator.h"
+#include "TGraphAsymmErrors.h"
 using namespace RooFit;
 using namespace RooStats;
 
 
-//#define LONG_FIT_RANGE 20
+#define LONG_FIT_RANGE 1
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
@@ -72,9 +73,9 @@ unbinfit::unbinfit()
     plotrangelow=-0.5;
     plotrangehi=5;
 #ifdef LONG_FIT_RANGE
-    plotrangehi=5;
+    plotrangehi=14;
 #else
-    plotrangehi=3;
+    plotrangehi=10;
 #endif
     fmineffMC = 0.475349;
     fmaxeffMC = 0.664527;
@@ -198,7 +199,20 @@ void unbinfit::fitBackground(Int_t opt)
 #ifdef GPUMODE
     if (ffitopt!=2)
         if (opt==0) bkgmodelneg->fitTo(*databkg,BatchMode("cuda"),Save()) ;
-    if (opt==0) bkgmodelnegT12->fitTo(*databkg,BatchMode("cuda"),Save()) ;
+
+    bool flag_fit_data_empty = false;
+    if (databkg->numEntries()==0){
+        flag_fit_data_empty=true;
+    }else{
+        if (opt==0) {
+            bkgmodelnegT12->fitTo(*databkg,BatchMode("cuda"),Save()) ;
+            xframe4 = xbkg->frame(Title("all fit bkg2")) ;
+            databkg->plotOn(xframe4,Binning(nbinsHB/2),RooFit::Name("bkg0n2")) ;
+            bkgmodelnegT12->plotOn(xframe4,RooFit::Name("bkg0nmodel"));
+        }
+    }
+
+
 #else
     if (opt==0) bkgmodelneg->fitTo(*databkg,NumCPU(ncpu),Save()) ;
     if (opt==0) bkgmodelnegT12->fitTo(*databkg,NumCPU(ncpu),Save()) ;
@@ -837,13 +851,16 @@ void unbinfit::plotResults()
         t12data->plotOn(xframe0,Binning(nbinsHB/2),RooFit::Name("data0n")) ;
         binw=(p_timerange-p_deadtime)/nbinsHB*2;
         final_pdfT12->plotOn(xframe0,RooFit::Name("data0nmodel")) ;
-
+        final_pdfT12->plotOn(xframe0,Components("bkgmodelposT12"),RooFit::Name("bkg0nPos")) ;
     }else{
         data->plotOn(xframe0,Binning(nbinsHB/2),RooFit::Name("data0n")) ;
         binw=(p_timerange-p_deadtime)/nbinsHB*2;
         final_pdf->plotOn(xframe0,RooFit::Name("data0nmodel")) ;
     }
-//    //bkgmodelpos->plotOn(xframe0,RooFit::Name("bkg0nposmodel")) ;
+    model0nCurve=(RooCurve*)xframe0->getCurve("data0nmodel");
+    model0nHist=(RooHist*)xframe0->getHist("data0n");
+    modelbkg0nCurvePositive=(RooCurve*)xframe0->getCurve("bkg0nPos");
+    modelbkg0nCurvePositive->SetLineWidth(0);
     xframe0->Draw() ;
 //    c1->cd(3);
 //    RooPlot* xframe1 = x->frame(Title("1 neutron fit")) ;
@@ -859,9 +876,18 @@ void unbinfit::plotResults()
 //    xframe2->Draw() ;
 
     c1->cd(2);
-    RooPlot* xframe3 = xbkg->frame(Title("all fit bkg")) ;
-    databkg->plotOn(xframe3,Binning(nbinsHB/2),RooFit::Name("bkg0n")) ;
-    xframe3->Draw() ;
+//    RooPlot* xframe3 = xbkg->frame(Title("all fit bkg")) ;
+//    databkg->plotOn(xframe3,Binning(nbinsHB/2),RooFit::Name("bkg0n")) ;
+
+    //    bkgmodelnegT12->plotOn(xframe3,RooFit::Name("bkg0nmodel"));
+//    xframe3->Draw() ;
+    modelbkg0nHist=(RooHist*)xframe4->getHist("bkg0n2");
+    modelbkg0nCurve=(RooCurve*)xframe4->getCurve("bkg0nmodel");
+    for (int i=0;i<modelbkg0nCurve->GetN();i++){
+        modelbkg0nCurve->SetPoint(i,modelbkg0nCurve->GetPointX(i),modelbkg0nCurvePositive->GetPointY(i));
+    }
+//    modelbkg0nCurve->SetLineWidth(0);
+    xframe4->Draw();
 
 //    c1->cd(4);
 //    RooPlot* xframe4 = xbkg->frame(Title("1 neutron fit bkg")) ;
@@ -874,15 +900,12 @@ void unbinfit::plotResults()
 //    xframe5->Draw() ;
     c1->Write();
 
-    model0nCurve=(RooCurve*)xframe0->getCurve("data0nmodel");
-    model0nHist=(RooHist*)xframe0->getHist("data0n");
 //    model1nCurve=(RooCurve*)xframe1->getCurve("data1nmodel");
 //    model1nHist=(RooHist*)xframe1->getHist("data1n");
 //    model2nCurve=(RooCurve*)xframe2->getCurve("data2nmodel");
 //    model2nHist=(RooHist*)xframe2->getHist("data2n");
 
-    modelbkg0nHist=(RooHist*)xframe3->getHist("bkg0n");
-//    modelbkg1nHist=(RooHist*)xframe4->getHist("bkg1n");
+    //    modelbkg1nHist=(RooHist*)xframe3->getHist("bkg1n");
 //    modelbkg2nHist=(RooHist*)xframe5->getHist("bkg2n");
 
     model0nHist->Write();
@@ -907,6 +930,7 @@ void unbinfit::plotResults()
     Double_t slope3posval=slope3pos->getVal();
     Double_t a0=slope3posval;
     Double_t b0=(2*nbkg->getVal()-a0*p_timerange*p_timerange)/2/p_timerange*(p_timerange/nbinsHB*2);
+    b0 = modelbkg0nCurve->GetPointY(1);
     Double_t a1=slope1posval*bkg1nratioval;
     Double_t b1=(2*nbkg->getVal()*bkg1nratioval-a1*p_timerange*p_timerange)/2/p_timerange*(p_timerange/nbinsHB*2);
     Double_t a2=slope2posval*bkg1nratioval*bkg2nratioval;
@@ -939,6 +963,7 @@ void unbinfit::plotResults()
             fB->SetParLimits(i,nsig_hB_firstbin/10,nsig_hB_firstbin*10);
         }
     }
+//    b0 = modelbkg0nCurve->GetPointY(0);
     fB->FixParameter(fdecaypath->getNMember()*5+8,b0);
     fB->FixParameter(fdecaypath->getNMember()*5+9,a0);
 //    fB->Write();
@@ -956,8 +981,8 @@ void unbinfit::plotResults()
 //    fSB2->FixParameter(fdecaypath->getNMember()*5+8,b2);
 //    fSB2->FixParameter(fdecaypath->getNMember()*5+9,a2);
 
-//    model0nCurve->Fit(fB,"LEQR","goff");
-//    model0nCurve->GetFunction("fB")->SetLineWidth(0);
+    model0nCurve->Fit(fB,"LEQR","goff");
+    model0nCurve->GetFunction("fB")->SetLineWidth(0);
 
 //    //fB->FixParameter(fdecaypath->getNMember()*5,nsig_hB_firstbin);
 //    fSB->FixParameter(fdecaypath->getNMember()*5,fB->GetParameter(fdecaypath->getNMember()*5));
@@ -1361,6 +1386,8 @@ void unbinfit::calculateUpperLimit()
 
 //! Add 2023, Mar 1: integraged range reduced to only up to 20 times of half-life
     Double_t integratedTimeRange = TMath::Log(2)/fB_parent->GetParameter(0)*20;
+    if (integratedTimeRange>p_timerange)
+        integratedTimeRange = p_timerange;
     //! old
 //    Double_t integratedTimeRange = p_timerange;
     //! write P1n,P2n and P3n upper limit
@@ -1368,10 +1395,14 @@ void unbinfit::calculateUpperLimit()
     sprintf(tempstr,"%s.txt",foutputData);
     std::ofstream ofs(tempstr,std::ios::app);
     N0b=fB_parent->Eval(0.)/pvar[0]->getVal()/binw-fB_parent->Eval(integratedTimeRange)/pvar[0]->getVal()/binw;
+    Double_t N0b2 = fB_parent->Eval(0.)/pvar[0]->getVal()/binw;
+    Double_t Nparent= fB_parent->Integral(0.,50.);
+    Double_t Ndaugter = fB_daugter->Integral(0.,50.);
+
     Double_t staterr_cnt =  fB_parent->Eval(0.)*nsig->getError()/nsig->getVal();
     Double_t dN0b = fB_parent->Eval(0.) / (fB->GetParameter(0) * binw)*sqrt(pow(staterr_cnt / fB_parent->Eval(0.), 2) + pow(pvar[0]->getError() / pvar[0]->getVal(), 2));
     Double_t dN0b_not12err = fB_parent->Eval(0.) / (fB->GetParameter(0) * binw)*staterr_cnt / fB_parent->Eval(0.);
-    ofs<<N0b<<"\t"<<dN0b<<"\t"<<N0b*nsig->getError()/nsig->getVal()<<"\t"<<dN0b_not12err<<endl;
+    ofs<<N0b<<"\t"<<N0b2<<"\t"<<dN0b<<"\t"<<N0b*nsig->getError()/nsig->getVal()<<"\t"<<dN0b_not12err<<"\t"<<nsig->getVal()*Nparent/(Nparent+Ndaugter)<<endl;
 
 //    N0b1n=tree->Draw("",Form("x>%f&&x<%f&&y==1",p_deadtime,integratedTimeRange),"goff")-
 //            tree->Draw("",Form("x>%f&&x<%f&&y==1",-integratedTimeRange,-p_deadtime),"goff")-
@@ -1414,10 +1445,10 @@ void unbinfit::plotResultsMore(Int_t opt)
     TPad *pad1_c0n = new TPad("pad1_c0n","pad1_c0n",0,0.3,1,1);
     TPad *pad2_c0n = new TPad("pad2_c0n","pad2_c0n",0,0,1,0.3);
     pad1_c0n->SetTopMargin(0.09);
-    pad1_c0n->SetBottomMargin(0.1);
+    pad1_c0n->SetBottomMargin(0.);
     pad1_c0n->SetBorderMode(0);
     //pad1_c0n->SetLogy();
-    pad2_c0n->SetTopMargin(0.1);
+    pad2_c0n->SetTopMargin(0.);
     pad2_c0n->SetBottomMargin(0.4);
     pad2_c0n->SetBorderMode(0);
     pad1_c0n->Draw();
@@ -1433,11 +1464,14 @@ void unbinfit::plotResultsMore(Int_t opt)
         hdummyc0n->GetYaxis()->SetTitle("Counts");
         hdummyc0n->GetXaxis()->SetTitle("t_{#beta} - t_{ion} (s)");
         hdummyc0n->GetYaxis()->SetLabelSize(0.05);
+        hdummyc0n->GetXaxis()->SetTitleSize(0.06);
+        hdummyc0n->GetXaxis()->SetLabelSize(0.05);
+
         //! for unbin fit
         for (Int_t i=0;i<model0nCurve->GetN();i++) if (model0nCurve->GetX()[i]<p_deadtime) npremove++; else break;
         for (Int_t i=0;i<npremove;i++) model0nCurve->RemovePoint(0);
-        model0nHist->SetMarkerSize(0.8);
-        modelbkg0nHist->SetMarkerSize(0.8);
+        model0nHist->SetMarkerSize(1.2);
+        modelbkg0nHist->SetMarkerSize(1.2);
         model0nHist->Draw("sameP");
         modelbkg0nHist->Draw("sameP");
         model0nCurve->SetLineWidth(3);
@@ -1470,106 +1504,76 @@ void unbinfit::plotResultsMore(Int_t opt)
     fB_bkgneg->Draw("same");
     pad1_c0n->Draw();
 
-//    pad2_c0n->cd();
-//    //!Calculate and residual plot - X2/ndf
-//    Double_t chisquare=0;
-//    Double_t xres[10000];
-//    Double_t yres[10000];
-//    Double_t yreserr[10000];
+    pad2_c0n->cd();
+    //!Calculate and residual plot - X2/ndf
+    Double_t chisquare=0;
+    Double_t xres[10000];
+    Double_t yres[10000];
+    Double_t yreserr[10000];
+    Double_t yreserrlow[10000];
 
-//    TGraphErrors * resplot_0n;
-//    TGraphErrors * resplotbkg_0n;
+    TGraphAsymmErrors * resplot_0n;
+    TGraphAsymmErrors * resplotbkg_0n;
 
-//    if (opt==0){
-//        for (Int_t i=0;i<model0nHist->GetN();i++){
-//            Double_t xi=model0nHist->GetX()[i];
-//            Double_t yi=model0nHist->GetY()[i];
-//            Double_t yeval=model0nCurve->Eval(xi);
-//            Double_t reldev=yeval-yi;
-//            xres[i]=xi;
-//            yres[i]=reldev;
-//            yreserr[i]=sqrt(yi+yeval);
-//            Double_t chisquarei=yeval-yi+yi*TMath::Log(yi/yeval);
-//            chisquare+=chisquarei;
-//        }
-//        chisquare=2*chisquare;
-//        cout<<"ndf="<<fitres->floatParsFinal().getSize()<<endl;
-//        chiSquareNDF=chisquare/(model0nHist->GetN()-fitres->floatParsFinal().getSize());
-//        cout<<"chisquare/ndf="<<chiSquareNDF<<endl;
+        for (Int_t i=0;i<model0nHist->GetN();i++){
+            Double_t xi=model0nHist->GetX()[i];
+            Double_t yi=model0nHist->GetY()[i];
+            Double_t yeval=model0nCurve->Eval(xi);
+            Double_t reldev=yeval-yi;
+            xres[i]=xi;
+            yres[i]=reldev;
+            yreserr[i]=model0nHist->GetEYlow()[i];//sqrt(yi+yeval);
+            yreserrlow[i]=model0nHist->GetEYhigh()[i];//sqrt(yi+yeval);
+            Double_t chisquarei=yeval-yi+yi*TMath::Log(yi/yeval);
+            chisquare+=chisquarei;
+        }
+        chisquare=2*chisquare;
+        cout<<"ndf="<<fitres->floatParsFinal().getSize()<<endl;
+        chiSquareNDF=chisquare/(model0nHist->GetN()-fitres->floatParsFinal().getSize());
+        cout<<"chisquare/ndf="<<chiSquareNDF<<endl;
 //        resplot_0n=new TGraphErrors(model0nHist->GetN(),xres,yres,0,yreserr);
-//        for (Int_t i=0;i<modelbkg0nHist->GetN();i++){
-//            Double_t xi=modelbkg0nHist->GetX()[i];
-//            Double_t yi=modelbkg0nHist->GetY()[i];
-//            Double_t yeval=fB_bkgneg->Eval(xi);
-//            Double_t reldev=yeval-yi;
-//            xres[i]=xi;
-//            yres[i]=reldev;
-//            yreserr[i]=sqrt(yi+yeval);
-//        }
-//        resplotbkg_0n=new TGraphErrors(modelbkg0nHist->GetN(),xres,yres,0,yreserr);
-//    }else{
-//        Int_t k=0;
-//        for (Int_t i=0;i<hB->GetNbinsX();i++){
-//            Double_t xi=hB->GetBinCenter(i+1);
-//            Double_t yi=hB->GetBinContent(i+1);
-//            if (xi>p_deadtime){
-//                Double_t yeval=fB->Eval(xi);
-//                Double_t reldev=yeval-yi;
-//                xres[k]=xi;
-//                yres[k]=reldev;
-//                yreserr[k]=sqrt(yi+yeval);
-//                Double_t chisquarei=yeval-yi+yi*TMath::Log(yi/yeval);
-//                chisquare+=chisquarei;
-//                k++;
-//            }
-//        }
-//        chisquare=2*chisquare;
-//        cout<<"k="<<k<<endl;
-//        cout<<"ndf="<<fitCovQual<<endl;
-//        chiSquareNDF=chisquare/(k+fitCovQual);
-//        cout<<"chisquare/ndf="<<chiSquareNDF<<endl;
-//        resplot_0n=new TGraphErrors(k,xres,yres,0,yreserr);
-//        k=0;
-//        for (Int_t i=0;i<hB->GetNbinsX();i++){
-//           Double_t xi=hB->GetBinCenter(i+1);
-//           Double_t yi=hB->GetBinContent(i+1);
-//           if (xi<0){
-//               Double_t yeval=fB_bkgneg->Eval(xi);
-//               Double_t reldev=yeval-yi;
-//               xres[k]=xi;
-//               yres[k]=reldev;
-//               yreserr[k]=sqrt(yi+yeval);
-//               k++;
-//           }
-//       }
-//        resplotbkg_0n=new TGraphErrors(k,xres,yres,0,yreserr);
-//    }
 
-//    TH1F* hdummyc0nres=new TH1F("hdummyc0nres","",20,plotrangelow,plotrangehi);
-//    hdummyc0nres->SetLineColor(1);
-//    hdummyc0nres->SetLineWidth(3);
-//    hdummyc0nres->Draw();
-//    hdummyc0nres->GetYaxis()->SetRangeUser(resplot_0n->GetYaxis()->GetXmin(),resplot_0n->GetYaxis()->GetXmax());
+        resplot_0n=new TGraphAsymmErrors(model0nHist->GetN(),xres,yres,0,0,yreserrlow,yreserr);
+        for (Int_t i=0;i<modelbkg0nHist->GetN();i++){
+            Double_t xi=modelbkg0nHist->GetX()[i];
+            Double_t yi=modelbkg0nHist->GetY()[i];
+            Double_t yeval=fB_bkgneg->Eval(xi);
+            Double_t reldev=yeval-yi;
+            xres[i]=xi;
+            yres[i]=reldev;
+            yreserr[i]=modelbkg0nHist->GetEYlow()[i];//sqrt(yi+yeval);
+            yreserrlow[i]=modelbkg0nHist->GetEYhigh()[i];//sqrt(yi+yeval);
+        }
+        resplotbkg_0n=new TGraphAsymmErrors(modelbkg0nHist->GetN(),xres,yres,0,0,yreserrlow,yreserr);
 
-//    hdummyc0nres->GetYaxis()->SetLabelSize(0.12);
-//    hdummyc0nres->GetYaxis()->SetTitle("fit - data (counts)");
-//    hdummyc0nres->GetYaxis()->SetTitleSize(0.12);
-//    hdummyc0nres->GetYaxis()->SetTitleOffset(0.29);
 
-//    hdummyc0nres->GetXaxis()->SetLabelSize(0.14);
-//    hdummyc0nres->GetXaxis()->SetTitle("t_{#beta} - t_{ion} (s)");
-//    hdummyc0nres->GetXaxis()->SetTitleSize(0.17);
-//    hdummyc0nres->GetXaxis()->SetTitleOffset(0.95);
+    TH1F* hdummyc0nres=new TH1F("hdummyc0nres","",20,plotrangelow,plotrangehi);
+    hdummyc0nres->SetLineColor(1);
+    hdummyc0nres->SetLineWidth(3);
+    hdummyc0nres->Draw();
+    hdummyc0nres->GetYaxis()->SetRangeUser(resplot_0n->GetYaxis()->GetXmin(),resplot_0n->GetYaxis()->GetXmax());
 
-//    resplot_0n->SetMarkerStyle(20);
-//    resplotbkg_0n->SetMarkerStyle(20);
+    hdummyc0nres->GetYaxis()->SetLabelSize(0.12);
+    hdummyc0nres->GetYaxis()->SetTitle("fit - data (counts)");
+    hdummyc0nres->GetYaxis()->SetTitleSize(0.12);
+    hdummyc0nres->GetYaxis()->SetTitleOffset(0.29);
 
-//    resplot_0n->SetLineColor(2);
-//    resplotbkg_0n->SetLineColor(2);
+    hdummyc0nres->GetXaxis()->SetLabelSize(0.14);
+    hdummyc0nres->GetXaxis()->SetTitle("t_{#beta} - t_{ion} (s)");
+    hdummyc0nres->GetXaxis()->SetTitleSize(0.17);
+    hdummyc0nres->GetXaxis()->SetTitleOffset(0.95);
 
-//    resplot_0n->Draw("sameP");
-//    resplotbkg_0n->Draw("sameP");
-//    pad2_c0n->Draw();
+    resplot_0n->SetMarkerStyle(20);
+    resplotbkg_0n->SetMarkerStyle(20);
+
+    resplot_0n->SetLineColor(2);
+    resplotbkg_0n->SetLineColor(2);
+    resplot_0n->SetMarkerSize(1.2);
+    resplotbkg_0n->SetMarkerSize(1.2);
+
+    resplot_0n->Draw("sameP");
+    resplotbkg_0n->Draw("sameP");
+    pad2_c0n->Draw();
     c0n->Write();
 
 
@@ -1898,6 +1902,7 @@ void unbinfit::plotResultsMore(Int_t opt)
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 void unbinfit::Run()
 {
+
     fitBackground();
 
     initFitParameters();
@@ -1934,16 +1939,100 @@ void unbinfit::Run()
     closeOutputFile();
 
     //Found that this ROOSTAT calculation change final value.
-    ProfileLikelihoodCalculator plc(*t12data, *final_pdfT12, RooArgSet(*nsig));
-    LikelihoodInterval* interval = plc.GetInterval();
-    upperLimit = interval->UpperLimit(*nsig);
-    cout << "Upper Limit on nsig: " << upperLimit << endl;
-    significance = upperLimit / nsig->getError();  // Approximate significance
-    cout << "Signal significance (Profile Likelihood): " << significance << " sigma" << endl;
-    char tempstr[500];
-    sprintf(tempstr,"%s.txt",foutputData);
-    std::ofstream ofs(tempstr,std::ios::app);
-    ofs<<"Significane = "<<significance<<endl;
+    double nsigval = nsig->getVal();
+    const char* plcflag = std::getenv("PLC");
+    if (plcflag){
+        //Manual asymptotic Z-value estimation.
+        double nll_sb = fitres->minNll(); // log(L_s+b)
+        nsig->setVal(0);//
+        nsig->setConstant(kTRUE);
+        if (pvar[0]->isConstant()){
+            pvar[0]->setMin(pvar[0]->getVal()-0.0001);
+            pvar[0]->setMax(pvar[0]->getVal()+0.0001);
+            pvar[0]->setConstant(kFALSE);
+        }
+        fitres=final_pdfT12->fitTo(*t12data,NumCPU(ncpu),Save(kTRUE),PrintLevel(3));
+        double nll_b = fitres->minNll(); // log(L_b)
+        double q0 = 2.0 * (nll_b - nll_sb);  // likelihood ratio
+        if (q0 < 0) q0 = 0;
+        double Z = sqrt(q0);
+        double significance3 = Z;
+//        nbkg->setConstant(false);
+//        nbkg->setMin(nbkg->getVal()-nbkg->getError()*3);
+//        nbkg->setMax(nbkg->getVal()+nbkg->getError()*3);
+        nsig->setConstant(kFALSE);
+        nsig->setVal(nsigval);
+        ProfileLikelihoodCalculator plc(*t12data, *final_pdfT12, RooArgSet(*nsig,*nbkg));
+        plc.SetConfidenceLevel(0.683);  // 1-sigma region
+        LikelihoodInterval* interval = plc.GetInterval();
+        upperLimit = interval->UpperLimit(*nsig);
+        double lower = interval->LowerLimit(*nsig);
+        // Rough-Rough estimation of Significance Relies indirectly on Wilks' theorem
+        double significance1 = nsigval / ((upperLimit - lower) / 2.0);  // Approximate significance
+        double significance2 = upperLimit / nsig->getError();  // Approximate significance 2
+
+        //Buit in asymptotic Z-value estimation of ProfileLikelihoodCalculator
+        RooArgSet nullparams("nullparams");
+        nullparams.addClone(*nsig);
+        nullparams.setRealValue(nsig->GetName(), 0);
+        plc.SetNullParameters(nullparams);
+        std::cout << "Perform Test of Hypothesis : null Hypothesis is " << nsig->GetName() << 0
+                  << std::endl;
+        auto result = plc.GetHypoTest();
+        std::cout << "\n>>>> Hypotheis Test Result \n";
+        result->Print();
+        significance = result->Significance();
+        cout<<significance<<"\t"<<significance3<<"\t"<<significance1<<"\t"<<significance2<<endl;
+        char tempstr[500];
+        sprintf(tempstr,"%s.txt",foutputData);
+        std::ofstream ofs(tempstr,std::ios::app);
+        ofs<<"Significane = "<<significance<<"\t"<<significance1<<"\t"<<significance2<<endl;
+
+    }
+
+    const char* MCflag = std::getenv("MC");
+    if (MCflag){
+        // Step 8: Create a workspace and ModelConfig
+        RooWorkspace w("w", true);
+        w.import(*final_pdfT12);
+        w.import(*t12data);
+        w.defineSet("obs", "x");
+        w.defineSet("poi", "nsig");
+
+
+        ModelConfig* mc = new ModelConfig("MyModel",&w);
+        mc->SetPdf(*final_pdfT12);
+        // Set observables
+//        RooArgSet* obs = new RooArgSet(*x);
+        mc->SetObservables(*x);
+        // Set parameter of interest
+//        RooArgSet* poi = new RooArgSet(*nsig);
+        mc->SetParametersOfInterest(*nsig);
+        // Set nuisance parameters (optional)
+//        RooArgSet* nuis = new RooArgSet(*nbkg);
+        mc->SetNuisanceParameters(*nbkg);
+        mc->SetSnapshot(*nsig);
+        ModelConfig* bModel = new ModelConfig(*mc);
+        bModel->SetName("BackgroundOnly");
+        nsig->setVal(0);
+        bModel->SetSnapshot(*nsig);  // Force signal=0 for null hypothesis
+
+//        ModelConfig* bModel = new ModelConfig("MyBModel",&w);
+//        bModel->SetPdf(*final_pdfT12);
+//        bModel->SetObservables(*x);
+//        bModel->SetParametersOfInterest(*nsig);
+//        mc->SetNuisanceParameters(*nbkg);
+//        bModel->SetSnapshot(*nsig);
+//        nsig->setVal(0);
+
+        FrequentistCalculator fc(*t12data, *mc, *bModel);  // Model config for both signal+background and background-only
+
+        fc.SetToys(1000,500);
+        RooStats::HypoTestResult* result = fc.GetHypoTest();
+        result->Print();
+    }
+
+
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
