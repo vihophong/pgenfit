@@ -41,7 +41,7 @@ unbinfit::unbinfit()
 
     p_deadtime=STARTFIT;
 #ifdef LONG_FIT_RANGE
-    p_timerange=20;
+    p_timerange=10;
 #else
     p_timerange=10;
 #endif
@@ -70,10 +70,10 @@ unbinfit::unbinfit()
     fitEdm=-9999;
     fitMinNll-9999;
 
-    plotrangelow=-0.5;
+    plotrangelow=-1.5;
     plotrangehi=5;
 #ifdef LONG_FIT_RANGE
-    plotrangehi=14;
+    plotrangehi=10;
 #else
     plotrangehi=10;
 #endif
@@ -725,8 +725,13 @@ void unbinfit::generateMC()
                 }
             }else{//other parameters
                 if (i<fdecaypath->getNMember()*3){//HL, P1n and P2n errors
-                    pVal[i]=rseedA->generate(pCentralVal[i],pValError[i],pValErrorHi[i]);
-                    //cout<<pCentralVal[i]<<"\t"<<pValError[i]<<"\t"<<pValErrorHi[i]<<endl;
+//                    pVal[i]=rseedA->generate(pCentralVal[i],pValError[i],pValErrorHi[i]);
+                    if (pValErrorHi[i]==0){
+                        pVal[i]=rseed->Rndm();
+//                        cout<<"AAAA"<<pCentralVal[i]<<"\t"<<pValError[i]<<"\t"<<pValErrorHi[i]<<endl;
+                    }else{
+                        pVal[i]=rseedA->generate(pCentralVal[i],pValError[i],pValErrorHi[i]);
+                    }
                 }else{
                     if (strcmp(pvar[i]->GetTitle(),(char*)"-")==0){//generate uniform random distribution
                         if (i==fdecaypath->getNMember()*5+7)//2n efficiency of parent
@@ -1932,7 +1937,7 @@ void unbinfit::Run()
         printCurrentParameters();
         doFit();
         writeResultsMC();
-        calculateChiSquare();
+//        calculateChiSquare();
     }
 
     writeOutputTree();
