@@ -1554,7 +1554,7 @@ void unbinfit::plotResultsMore(Int_t opt)
 
     fB_alphanobkg->SetLineWidth(3);
     fB_alphanobkg->SetLineColor(7);
-    fB_alphanobkg->Draw("same");
+//    fB_alphanobkg->Draw("same");
 
     fB_bkgneg->SetLineWidth(3);
     fB_bkgneg->SetLineColor(4);
