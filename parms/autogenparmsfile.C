@@ -52,7 +52,7 @@
 #include <string>
 
 #define P2NVARY 0
-#define P1NVARY 5
+#define P1NVARY 0
 
 using namespace std; 
 
