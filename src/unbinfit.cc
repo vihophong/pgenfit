@@ -207,7 +207,8 @@ void unbinfit::fitBackground(Int_t opt)
         flag_fit_data_empty=true;
     }else{
         if (opt==0) {
-            bkgmodelnegT12->fitTo(*databkg,BatchMode("cuda"),Save()) ;
+//            bkgmodelnegT12->fitTo(*databkg,BatchMode("cuda"),Save()) ;
+            bkgmodelnegT12->fitTo(*databkg,NumCPU(ncpu),Save(kTRUE)) ;
             xframe4 = xbkg->frame(Title("all fit bkg2")) ;
             databkg->plotOn(xframe4,Binning(nbinsHB/2,-p_timerange,0),RooFit::Name("bkg0n2")) ;
             bkgmodelnegT12->plotOn(xframe4,RooFit::Name("bkg0nmodel"));
