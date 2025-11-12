@@ -216,10 +216,10 @@ Double_t fitF_T12::evaluate() const
         p2n[i]=(*p[fpath->nri2+i]);
         py[i]=(*p[fpath->nri3+i]);
     }
-#ifdef ISOMER_SUM_UNITY
-    // isomer
-    for (Int_t i=0;i<fpath->nisomers;i++) py[fpath->isomer_ex_index[i]]=1-py[fpath->isomer_gs_index[i]];
-#endif
+//#ifdef ISOMER_SUM_UNITY
+//    // isomer
+//    for (Int_t i=0;i<fpath->nisomers;i++) py[fpath->isomer_ex_index[i]]=1-py[fpath->isomer_gs_index[i]];
+//#endif
     Double_t N0=*p[fpath->nri4]/ l[0];
     Double_t be=*p[fpath->nri4+1];
 

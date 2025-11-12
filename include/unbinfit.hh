@@ -210,7 +210,7 @@ class unbinfit
 
 
     //! fit results
-    RooFitResult* fitres;
+    RooFitResult* fitres=0;
 
     //! stuffs for MC generation
     TRandom3* rseed;
@@ -282,13 +282,19 @@ class unbinfit
     TF1* fSB2_bkgpos;
 
 
-    fitF* totdecaymodelforplot;
+    fitF_T12* totdecaymodelforplot;
     TF1* fB_parent;
     TF1* fB_daugter;
+    TF1* fB_parentnobkg;
+    TF1* fB_daugternobkg;
     TF1* fSB_parent;
     TF1* fSB_daugter;
     TF1* fSB2_parent;
     TF1* fSB2_daugter;
+
+
+    TF1* fB_alpha;
+    TF1* fB_alphanobkg;
 
     TF1* fSB_c1;
     TF1* fSB_c2;

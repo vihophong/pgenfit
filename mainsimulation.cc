@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
         TTree* treecorr=sim->getCorrelationTree();
         TTree* treemlh=sim->getMLHTree();
         TTree* treemlhbw=sim->getMLHTreeBackward();
-//        sim->fillTreeData();
+        sim->fillTreeData();
         sim->correlateData();
         fout->cd();
         treeion->Write();

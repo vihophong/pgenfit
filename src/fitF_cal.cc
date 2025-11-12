@@ -28,6 +28,7 @@ Double_t fitF::fcndecay(Double_t *x, Double_t *par) const
     calculateDecay(fdecayall,fparent, fdaugters, l,e,p1n,p2n,py,N0,be);
     return fdecayall+par[fpath->nri5+8]+par[fpath->nri5+9]*t;
 }
+
 Double_t fitF::fcndecay1n(Double_t *x, Double_t *par) const
 {
     Double_t t=x[0];
@@ -170,14 +171,12 @@ Double_t fitF::fcndecay_parent(Double_t *x, Double_t *par) const
     Double_t* p1n=&par[fpath->nri];
     Double_t* p2n=&par[fpath->nri2];
     Double_t* py=&par[fpath->nri3];
-#ifdef ISOMER_SUM_UNITY
-    // isomer
-    for (Int_t i=0;i<fpath->nisomers;i++) py[fpath->isomer_ex_index[i]]=1-py[fpath->isomer_gs_index[i]];
-#endif
-    Double_t N0=par[fpath->nri5]/l[0];
-
-    Double_t be=par[fpath->nri5+4];//factor of parent's beta efficiency, relative to daugters
-
+//#ifdef ISOMER_SUM_UNITY
+//    // isomer
+//    for (Int_t i=0;i<fpath->nisomers;i++) py[fpath->isomer_ex_index[i]]=1-py[fpath->isomer_gs_index[i]];
+//#endif
+    Double_t N0=par[fpath->nri4]/l[0];
+    Double_t be=par[fpath->nri4+1];//factor of parent's beta efficiency, relative to daugters
     Double_t fparent=0;
     Double_t fdecayall=0;
     Double_t fdaugters[fpath->npaths];
@@ -626,18 +625,67 @@ Double_t fitF_T12::fcndecay(Double_t *x, Double_t *par) const
     Double_t* p1n=&par[fpath->nri];
     Double_t* p2n=&par[fpath->nri2];
     Double_t* py=&par[fpath->nri3];
-#ifdef ISOMER_SUM_UNITY
-    // isomer
-    for (Int_t i=0;i<fpath->nisomers;i++) py[fpath->isomer_ex_index[i]]=1-py[fpath->isomer_gs_index[i]];
-#endif
-    Double_t N0=par[fpath->nri5]/l[0];
-    Double_t be=par[fpath->nri5+4];//factor of parent's beta efficiency, relative to daugters
+//#ifdef ISOMER_SUM_UNITY
+//    // isomer
+//    for (Int_t i=0;i<fpath->nisomers;i++) py[fpath->isomer_ex_index[i]]=1-py[fpath->isomer_gs_index[i]];
+//#endif
+    Double_t N0=par[fpath->nri4]/l[0];
+    Double_t be=par[fpath->nri4+1];//factor of parent's beta efficiency, relative to daugters
 
     Double_t fparent=0;
     Double_t fdecayall=0;
     Double_t fdaugters[fpath->npaths];
     calculateDecay(fdecayall,fparent, fdaugters, l,e,p1n,p2n,py,N0,be);
     return fdecayall+par[fpath->nri5+8]+par[fpath->nri5+9]*t;
+}
+
+
+Double_t fitF_T12::fcndecayAlpha(Double_t *x, Double_t *par) const
+{
+    Double_t t=x[0];
+    Double_t* l=&par[0];
+    Double_t e[fpath->nri];
+    for (Int_t i=0;i<fpath->nri;i++) e[i]=TMath::Exp(-l[i]*t);
+
+    Double_t* p1n=&par[fpath->nri];
+    Double_t* p2n=&par[fpath->nri2];
+    Double_t* py=&par[fpath->nri3];
+//#ifdef ISOMER_SUM_UNITY
+//    // isomer
+//    for (Int_t i=0;i<fpath->nisomers;i++) py[fpath->isomer_ex_index[i]]=1-py[fpath->isomer_gs_index[i]];
+//#endif
+    Double_t N0=par[fpath->nri4]/l[0];
+    Double_t be=par[fpath->nri4+1];//factor of parent's beta efficiency, relative to daugters
+
+    Double_t fparent=0;
+    Double_t fdecayall=0;
+    Double_t fdaugters[fpath->npaths];
+    calculateDecayAlpha(fdecayall,fparent, fdaugters, l,e,p1n,p2n,py,N0,be);
+    return fdecayall+par[fpath->nri5+8]+par[fpath->nri5+9]*t;
+}
+
+Double_t fitF_T12::fcndecayAlphanobkg(Double_t *x, Double_t *par) const
+{
+    Double_t t=x[0];
+    Double_t* l=&par[0];
+    Double_t e[fpath->nri];
+    for (Int_t i=0;i<fpath->nri;i++) e[i]=TMath::Exp(-l[i]*t);
+
+    Double_t* p1n=&par[fpath->nri];
+    Double_t* p2n=&par[fpath->nri2];
+    Double_t* py=&par[fpath->nri3];
+//#ifdef ISOMER_SUM_UNITY
+//    // isomer
+//    for (Int_t i=0;i<fpath->nisomers;i++) py[fpath->isomer_ex_index[i]]=1-py[fpath->isomer_gs_index[i]];
+//#endif
+    Double_t N0=par[fpath->nri4]/l[0];
+    Double_t be=par[fpath->nri4+1];//factor of parent's beta efficiency, relative to daugters
+//    std::cout<<par[fpath->nri4]<<"\t"<<l[0]<<"\t"<<be<<std::endl;
+    Double_t fparent=0;
+    Double_t fdecayall=0;
+    Double_t fdaugters[fpath->npaths];
+    calculateDecayAlpha(fdecayall,fparent, fdaugters, l,e,p1n,p2n,py,N0,be);
+    return fdecayall;
 }
 Double_t fitF_T12::fcndecay1n(Double_t *x, Double_t *par) const
 {
@@ -704,8 +752,8 @@ Double_t fitF_T12::fcndecay2n(Double_t *x, Double_t *par) const
 
 void fitF_T12::calculateDecay(Double_t &fdecayall, Double_t &fparent, Double_t* fdaugters, Double_t *l, Double_t *e, Double_t *p1n, Double_t *p2n, Double_t *py, Double_t N0, Double_t be) const
 {
-    fparent=l[0]*N0*e[0];
-    fdecayall=fparent*be;
+    fparent=l[0]*N0*e[0];//assuming parent is the first member
+    fdecayall=fparent*(be*(1-py[0])+py[0]);//be is is the ratio between beta efficiency and alpha efficiency, py is the alpha branching
     for (Int_t i=0;i<fpath->npaths;i++){
 #ifdef PATHFLOW
         if (fpath->ispathhasflow[i]){
@@ -713,11 +761,14 @@ void fitF_T12::calculateDecay(Double_t &fdecayall, Double_t &fparent, Double_t* 
             fdaugters[i]=1.;
             for (int j=0;j<fpath->ndecay[i]-1;j++){
                 if (fpath->nneu[i][j]==0){
-                    fdaugters[i]=fdaugters[i] * py[fpath->decaymap[i][j+1]]*(1-p1n[fpath->decaymap[i][j]]-p2n[fpath->decaymap[i][j]])*l[fpath->decaymap[i][j]];//branching here!
+                    fdaugters[i]=fdaugters[i] * (1-py[fpath->decaymap[i][j]])*(1-p1n[fpath->decaymap[i][j]]-p2n[fpath->decaymap[i][j]])*l[fpath->decaymap[i][j]];//branching here!
                 }else if (fpath->nneu[i][j]==1){
-                    fdaugters[i]=fdaugters[i] * py[fpath->decaymap[i][j+1]]*p1n[fpath->decaymap[i][j]]*l[fpath->decaymap[i][j]];
-                }else{
-                    fdaugters[i]=fdaugters[i] * py[fpath->decaymap[i][j+1]]*p2n[fpath->decaymap[i][j]]*l[fpath->decaymap[i][j]];
+                    fdaugters[i]=fdaugters[i] * (1-py[fpath->decaymap[i][j]])* p1n[fpath->decaymap[i][j]]*l[fpath->decaymap[i][j]];
+                }else if(fpath->nneu[i][j]==2){
+                    fdaugters[i]=fdaugters[i] * (1-py[fpath->decaymap[i][j]])*p2n[fpath->decaymap[i][j]]*l[fpath->decaymap[i][j]];
+                }else if (fpath->nneu[i][j]==100){
+                    std::cout<<"some-thing-wrong"<<std::endl;
+                    fdaugters[i]=fdaugters[i] * py[fpath->decaymap[i][j]]*l[fpath->decaymap[i][j]];//#alpha branching
                 }
             }
 
@@ -731,8 +782,48 @@ void fitF_T12::calculateDecay(Double_t &fdecayall, Double_t &fparent, Double_t* 
                 }
                 factor2=factor2+e[fpath->decaymap[i][j]]/factor2jk;
             }
-            fdaugters[i]=l[fpath->decaymap[i][fpath->ndecay[i]-1]]*fdaugters[i]*N0*factor2;
+            fdaugters[i]=l[fpath->decaymap[i][fpath->ndecay[i]-1]]*fdaugters[i]*N0*factor2*((1-py[fpath->decaymap[i][fpath->ndecay[i]-1]])*be+py[fpath->decaymap[i][fpath->ndecay[i]-1]]);
+            fdecayall+=fdaugters[i];
+#ifdef PATHFLOW
+        }
+#endif
+    }
+}
 
+
+void fitF_T12::calculateDecayAlpha(Double_t &fdecayall, Double_t &fparent, Double_t* fdaugters, Double_t *l, Double_t *e, Double_t *p1n, Double_t *p2n, Double_t *py, Double_t N0, Double_t be) const
+{
+    fparent=l[0]*N0*e[0];//assuming parent is the first member
+    fdecayall=fparent*py[0];//be is is the ratio between beta efficiency and alpha efficiency, py is the alpha branching
+    for (Int_t i=0;i<fpath->npaths;i++){
+#ifdef PATHFLOW
+        if (fpath->ispathhasflow[i]){
+#endif
+            fdaugters[i]=1.;
+            for (int j=0;j<fpath->ndecay[i]-1;j++){
+                if (fpath->nneu[i][j]==0){
+                    fdaugters[i]=fdaugters[i] * (1-py[fpath->decaymap[i][j]])*(1-p1n[fpath->decaymap[i][j]]-p2n[fpath->decaymap[i][j]])*l[fpath->decaymap[i][j]];//branching here!
+                }else if (fpath->nneu[i][j]==1){
+                    fdaugters[i]=fdaugters[i] * (1-py[fpath->decaymap[i][j]])* p1n[fpath->decaymap[i][j]]*l[fpath->decaymap[i][j]];
+                }else if(fpath->nneu[i][j]==2){
+                    fdaugters[i]=fdaugters[i] * (1-py[fpath->decaymap[i][j]])*p2n[fpath->decaymap[i][j]]*l[fpath->decaymap[i][j]];
+                }else if (fpath->nneu[i][j]==100){
+                    std::cout<<"some-thing-wrong"<<std::endl;
+                    fdaugters[i]=fdaugters[i] * py[fpath->decaymap[i][j]]*l[fpath->decaymap[i][j]];//#alpha branching
+                }
+            }
+
+            Double_t factor2=0;
+            for (int j=0;j<fpath->ndecay[i];j++){
+                Double_t factor2jk=1;
+                for (int k=0;k<fpath->ndecay[i];k++){
+                    if (k!=j) {
+                        factor2jk=factor2jk*(l[fpath->decaymap[i][k]]-l[fpath->decaymap[i][j]]);
+                    }
+                }
+                factor2=factor2+e[fpath->decaymap[i][j]]/factor2jk;
+            }
+            fdaugters[i]=l[fpath->decaymap[i][fpath->ndecay[i]-1]]*fdaugters[i]*N0*factor2*(py[fpath->decaymap[i][fpath->ndecay[i]-1]]);
             fdecayall+=fdaugters[i];
 #ifdef PATHFLOW
         }
@@ -781,19 +872,42 @@ Double_t fitF_T12::fcndecay_parent(Double_t *x, Double_t *par) const
     Double_t* p1n=&par[fpath->nri];
     Double_t* p2n=&par[fpath->nri2];
     Double_t* py=&par[fpath->nri3];
-#ifdef ISOMER_SUM_UNITY
-    // isomer
-    for (Int_t i=0;i<fpath->nisomers;i++) py[fpath->isomer_ex_index[i]]=1-py[fpath->isomer_gs_index[i]];
-#endif
-    Double_t N0=par[fpath->nri5]/l[0];
-
-    Double_t be=par[fpath->nri5+4];//factor of parent's beta efficiency, relative to daugters
+//#ifdef ISOMER_SUM_UNITY
+//    // isomer
+//    for (Int_t i=0;i<fpath->nisomers;i++) py[fpath->isomer_ex_index[i]]=1-py[fpath->isomer_gs_index[i]];
+//#endif
+    Double_t N0=par[fpath->nri4]/l[0];
+    Double_t be=par[fpath->nri4+1];//factor of parent's beta efficiency, relative to daugters
 
     Double_t fparent=0;
     Double_t fdecayall=0;
     Double_t fdaugters[fpath->npaths];
     calculateDecay(fdecayall,fparent, fdaugters, l,e,p1n,p2n,py,N0,be);
-    return fparent*be+par[fpath->nri5+8]+par[fpath->nri5+9]*t;
+    return fparent*(be*(1-py[0])+py[0])+par[fpath->nri5+8]+par[fpath->nri5+9]*t;
+}
+
+//! ------------For plotting-----------------
+Double_t fitF_T12::fcndecay_parentnobkg(Double_t *x, Double_t *par) const
+{
+    Double_t t=x[0];
+    Double_t* l=&par[0];
+    Double_t e[fpath->nri];
+    for (Int_t i=0;i<fpath->nri;i++) e[i]=TMath::Exp(-l[i]*t);
+    Double_t* p1n=&par[fpath->nri];
+    Double_t* p2n=&par[fpath->nri2];
+    Double_t* py=&par[fpath->nri3];
+//#ifdef ISOMER_SUM_UNITY
+//    // isomer
+//    for (Int_t i=0;i<fpath->nisomers;i++) py[fpath->isomer_ex_index[i]]=1-py[fpath->isomer_gs_index[i]];
+//#endif
+    Double_t N0=par[fpath->nri4]/l[0];
+    Double_t be=par[fpath->nri4+1];//factor of parent's beta efficiency, relative to daugters
+
+    Double_t fparent=0;
+    Double_t fdecayall=0;
+    Double_t fdaugters[fpath->npaths];
+    calculateDecay(fdecayall,fparent, fdaugters, l,e,p1n,p2n,py,N0,be);
+    return fparent*(be*(1-py[0])+py[0]);
 }
 
 Double_t fitF_T12::fcndecay1n_parent(Double_t *x, Double_t *par) const

@@ -119,6 +119,11 @@ typedef struct {
     Int_t sim_neumult;
     Double_t sim_T;
     Bool_t sim_ispopulated;
+    Double_t decay_bbr, decay_bbrerr, decay_bbrerrhi, decay_bbrlow, decay_bbrup;
+    Double_t decay_abr, decay_abrerr, decay_abrerrhi, decay_abrlow, decay_abrup;
+
+    Int_t is_decay_abr_fix;
+    Int_t is_seed;
 } MemberDef;
 
 //! reduced paths

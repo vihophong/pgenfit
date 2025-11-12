@@ -108,6 +108,8 @@ void simulation::BookCorrelationTree()
     ftreemlh=new TTree("tree","tree");
     ftreemlh->Branch("x",&fmlh_t,"x/D");
     ftreemlh->Branch("y",&fmlh_mult,"y/I");
+    ftreemlh->Branch("z",&fmlh_idalpha,"Z/I");
+
 
     ftreemlhbw=new TTree("treebw","treebw");
     ftreemlhbw->Branch("x",&fmlhbw_t,"x/D");
@@ -160,8 +162,8 @@ void simulation::readSimulationParameters(char *inputfile)
 {
 
     fdeltaxy=2.;
-    fionbetawindowlow=10;
-    fionbetawindowup=20;
+    fionbetawindowlow=500;
+    fionbetawindowup=500;
     fwindowbetaneutronlow=400000./1e9;
     fwindowbetaneutronup=400000./1e9;
 
@@ -198,6 +200,7 @@ void simulation::readSimulationParameters(char *inputfile)
         if (line_head=="betaneutronmodtime") fsimparms.betaneutronmodtime=line_val;
         if (line_head=="beamneutronmodtime") fsimparms.beamneutronmodtime=line_val;
 
+
         if (line_head=="xmin") fsimparms.xmin=line_val;
         if (line_head=="xmax") fsimparms.xmax=line_val;
         if (line_head=="ymin") fsimparms.ymin=line_val;
@@ -214,6 +217,13 @@ void simulation::readSimulationParameters(char *inputfile)
         if (line_head=="dxbetasigma") fsimparms.dxbetasigma=line_val;
         if (line_head=="dybetamean") fsimparms.dybetamean=line_val;
         if (line_head=="dybetasigma") fsimparms.dybetasigma=line_val;
+
+        if (line_head=="alphaeff") fsimparms.alphaeff=line_val;
+        if (line_head=="deltaxylimitalpha") fsimparms.deltaxyalpha=line_val;
+        if (line_head=="dxalphamean") fsimparms.dxalphamean=line_val;
+        if (line_head=="dxalphasigma") fsimparms.dxalphasigma=line_val;
+        if (line_head=="dyalphamean") fsimparms.dyalphamean=line_val;
+        if (line_head=="dyalphasigma") fsimparms.dyalphasigma=line_val;
 
 
         if (line_head=="xbetabkgmean") fsimparms.xbetabkgmean=line_val;
@@ -257,6 +267,13 @@ void simulation::readSimulationParameters(char *inputfile)
     cout<<"dxbetasigma = "<<fsimparms.dxbetasigma<<endl;
     cout<<"dybetamean = "<<fsimparms.dybetamean<<endl;
     cout<<"dybetasigma = "<<fsimparms.dybetasigma<<endl;
+
+    cout<<"Alpha Efficiency = "<<fsimparms.alphaeff<<endl;
+    cout<<"deltaxylimitalpha = "<<fsimparms.deltaxyalpha<<endl;
+    cout<<"dxalphamean = "<<fsimparms.dxalphamean<<endl;
+    cout<<"dxalphasigma = "<<fsimparms.dxalphasigma<<endl;
+    cout<<"dyalphamean = "<<fsimparms.dyalphamean<<endl;
+    cout<<"dyalphasigma = "<<fsimparms.dyalphasigma<<endl;
 
 
     cout<<"xbetabkgmean = "<<fsimparms.ximpmean<<endl;
@@ -317,97 +334,134 @@ void simulation::registerDecay(MemberDef* decaymember,Int_t pathid,Double_t deca
         uniqueId=0;
     else
         uniqueId=fripathToId[decaymember->id][pathid];
-    //! beta decay
-    Double_t dxbeta=rseed->Gaus(fsimparms.dxbetamean,fsimparms.dxbetasigma);
-    Double_t dybeta=rseed->Gaus(fsimparms.dybetamean,fsimparms.dybetasigma);
+    if (decaymember->sim_neumult<3){//register beta
+        //! beta decay
+        Double_t dxbeta=rseed->Gaus(fsimparms.dxbetamean,fsimparms.dxbetasigma);
+        Double_t dybeta=rseed->Gaus(fsimparms.dybetamean,fsimparms.dybetasigma);
 
-    if (fsimparms.isSpatialDistFromHist!=0){
-        dxbeta=hhdx->GetRandom();
-        dybeta=hhdy->GetRandom();
-    }
-    if (dxbeta>fsimparms.deltaxy)
-        dxbeta = fsimparms.deltaxy;
-    if (dybeta>fsimparms.deltaxy)
-        dybeta = fsimparms.deltaxy;
+        if (fsimparms.isSpatialDistFromHist!=0){
+            dxbeta=hhdx->GetRandom();
+            dybeta=hhdy->GetRandom();
+        }
+        if (dxbeta>fsimparms.deltaxy)
+            dxbeta = fsimparms.deltaxy;
+        if (dybeta>fsimparms.deltaxy)
+            dybeta = fsimparms.deltaxy;
 
-    Double_t xbeta=dxbeta+fximp;
-    Double_t ybeta=dybeta+fyimp;
+        Double_t xbeta=dxbeta+fximp;
+        Double_t ybeta=dybeta+fyimp;
 
-    simulationdatatype betahit;
-    betahit.evt=fprimImplantEvt;
-    betahit.Tcorr=decaytime;
-    betahit.T=fprimImplantT+decaytime;
-    betahit.x=xbeta;
-    betahit.y=ybeta;
-    betahit.z=0;
-    betahit.mode=decaymember->sim_neumult;
-    betahit.id=decaymember->id;
-    betahit.ifl=uniqueId;
-    ftsbeta=betahit.T;
-    if (pathid>=0){//parent decay
-        betahit.fl_n=decaymember->path[pathid].size();
-        for (Int_t k=0;k<decaymember->path[pathid].size();k++)// loop all elelemts of the path
-            betahit.fl_i[k]=decaymember->path[pathid][k];
-    }else{
-        betahit.fl_n=0;
-    }
-
-    if (rseed->Rndm()*100<fsimparms.betaeff) {
-        betaMap.insert(make_pair(betahit.T,betahit));
-        fbetaEvt++;
-    }
-
-    //! beta decay with neutron
-    if (decaymember->sim_neumult==1){//1 neutron decay
-        Double_t pneu=rseed->Rndm();
-        Double_t dtneu=rseed->Exp(fsimparms.betaneutronmodtime/TMath::Log(2));
-        if (pneu<=decaymember->neueff){
-            simulationdatatype neuhit;
-            neuhit.T=betahit.T+dtneu;
-            neuhit.evt=betahit.evt;
-            neuhit.mode=betahit.mode;
-            neuhit.id=betahit.id;
-            neuhit.ifl=uniqueId;
-            neuhit.fl_n=betahit.fl_n;
-            memcpy(neuhit.fl_i,betahit.fl_i,sizeof(betahit.fl_i));
-            neuMap.insert(make_pair(neuhit.T,neuhit));
-            fneuEvt++;
+        simulationdatatype betahit;
+        betahit.evt=fprimImplantEvt;
+        betahit.Tcorr=decaytime;
+        betahit.T=fprimImplantT+decaytime;
+        betahit.x=xbeta;
+        betahit.y=ybeta;
+        betahit.z=0;
+        betahit.mode=decaymember->sim_neumult;
+        betahit.id=decaymember->id;
+        betahit.ifl=uniqueId;
+        ftsbeta=betahit.T;
+        if (pathid>=0){//parent decay
+            betahit.fl_n=decaymember->path[pathid].size();
+            for (Int_t k=0;k<decaymember->path[pathid].size();k++)// loop all elelemts of the path
+                betahit.fl_i[k]=decaymember->path[pathid][k];
+        }else{
+            betahit.fl_n=0;
         }
 
-
-    }else if (decaymember->sim_neumult==2){//2 neutrons decay
-        Double_t pneu=rseed->Rndm();
-        Double_t dtneu=rseed->Exp(fsimparms.betaneutronmodtime/TMath::Log(2));
-
-        if (pneu<=decaymember->neueff){
-            simulationdatatype neuhit1;
-            neuhit1.Tcorr=dtneu;
-            neuhit1.T=betahit.T+dtneu;
-            neuhit1.evt=betahit.evt;
-            neuhit1.mode=betahit.mode;
-            neuhit1.id=betahit.id;
-            neuhit1.ifl=uniqueId;
-            neuhit1.fl_n=betahit.fl_n;
-            memcpy(neuhit1.fl_i,betahit.fl_i,sizeof(betahit.fl_i));
-            neuMap.insert(make_pair(neuhit1.T,neuhit1));
-            fneuEvt++;
+        if (rseed->Rndm()*100<fsimparms.betaeff) {
+            betaMap.insert(make_pair(betahit.T,betahit));
+            fbetaEvt++;
         }
 
-        pneu=rseed->Rndm();
-        dtneu=rseed->Exp(fsimparms.betaneutronmodtime/TMath::Log(2));
+        //! beta decay with neutron
+        if (decaymember->sim_neumult==1){//1 neutron decay
+            Double_t pneu=rseed->Rndm();
+            Double_t dtneu=rseed->Exp(fsimparms.betaneutronmodtime/TMath::Log(2));
+            if (pneu<=decaymember->neueff){
+                simulationdatatype neuhit;
+                neuhit.T=betahit.T+dtneu;
+                neuhit.evt=betahit.evt;
+                neuhit.mode=betahit.mode;
+                neuhit.id=betahit.id;
+                neuhit.ifl=uniqueId;
+                neuhit.fl_n=betahit.fl_n;
+                memcpy(neuhit.fl_i,betahit.fl_i,sizeof(betahit.fl_i));
+                neuMap.insert(make_pair(neuhit.T,neuhit));
+                fneuEvt++;
+            }
 
-        if (pneu<=decaymember->neueff){
-            simulationdatatype neuhit2;
-            neuhit2.Tcorr=dtneu;
-            neuhit2.T=betahit.T+dtneu;
-            neuhit2.evt=betahit.evt;
-            neuhit2.mode=betahit.mode;
-            neuhit2.id=betahit.id;
-            neuhit2.ifl=uniqueId;
-            neuhit2.fl_n=betahit.fl_n;
-            memcpy(neuhit2.fl_i,betahit.fl_i,sizeof(betahit.fl_i));
-            neuMap.insert(make_pair(neuhit2.T,neuhit2));
-            fneuEvt++;
+
+        }else if (decaymember->sim_neumult==2){//2 neutrons decay
+            Double_t pneu=rseed->Rndm();
+            Double_t dtneu=rseed->Exp(fsimparms.betaneutronmodtime/TMath::Log(2));
+
+            if (pneu<=decaymember->neueff){
+                simulationdatatype neuhit1;
+                neuhit1.Tcorr=dtneu;
+                neuhit1.T=betahit.T+dtneu;
+                neuhit1.evt=betahit.evt;
+                neuhit1.mode=betahit.mode;
+                neuhit1.id=betahit.id;
+                neuhit1.ifl=uniqueId;
+                neuhit1.fl_n=betahit.fl_n;
+                memcpy(neuhit1.fl_i,betahit.fl_i,sizeof(betahit.fl_i));
+                neuMap.insert(make_pair(neuhit1.T,neuhit1));
+                fneuEvt++;
+            }
+
+            pneu=rseed->Rndm();
+            dtneu=rseed->Exp(fsimparms.betaneutronmodtime/TMath::Log(2));
+
+            if (pneu<=decaymember->neueff){
+                simulationdatatype neuhit2;
+                neuhit2.Tcorr=dtneu;
+                neuhit2.T=betahit.T+dtneu;
+                neuhit2.evt=betahit.evt;
+                neuhit2.mode=betahit.mode;
+                neuhit2.id=betahit.id;
+                neuhit2.ifl=uniqueId;
+                neuhit2.fl_n=betahit.fl_n;
+                memcpy(neuhit2.fl_i,betahit.fl_i,sizeof(betahit.fl_i));
+                neuMap.insert(make_pair(neuhit2.T,neuhit2));
+                fneuEvt++;
+            }
+        }
+
+    }else{//register alpha
+        //! beta decay
+        Double_t dxbeta=rseed->Gaus(fsimparms.dxalphamean,fsimparms.dxalphasigma);
+        Double_t dybeta=rseed->Gaus(fsimparms.dyalphamean,fsimparms.dyalphasigma);
+
+        if (dxbeta>fsimparms.deltaxyalpha)
+            dxbeta = fsimparms.deltaxyalpha;
+        if (dybeta>fsimparms.deltaxyalpha)
+            dybeta = fsimparms.deltaxyalpha;
+        Double_t xbeta=dxbeta+fximp;
+        Double_t ybeta=dybeta+fyimp;
+
+        simulationdatatype alphahit;
+        alphahit.evt=fprimImplantEvt;
+        alphahit.Tcorr=decaytime;
+        alphahit.T=fprimImplantT+decaytime;
+        alphahit.x=xbeta;
+        alphahit.y=ybeta;
+        alphahit.z=0;
+        alphahit.mode=10;
+        alphahit.id=decaymember->id;
+        alphahit.ifl=uniqueId;
+        if (pathid>=0){//parent decay
+            alphahit.fl_n=decaymember->path[pathid].size();
+            for (Int_t k=0;k<decaymember->path[pathid].size();k++)// loop all elelemts of the path
+                alphahit.fl_i[k]=decaymember->path[pathid][k];
+        }else{
+            alphahit.fl_n=0;
+        }
+
+        if (rseed->Rndm()*100<fsimparms.alphaeff) {
+            betaMap.insert(make_pair(alphahit.T,alphahit));
+            fbetaEvt++;
         }
     }
 
@@ -491,27 +545,34 @@ void simulation::doSingle()
 
     //! register beta decay
     for (Int_t i=0;i<fdecaypathobj->getNMember();i++){
-        Double_t rneu=rseed->Rndm();
-        if (rneu<=(fdecaypathobj->getMember(i)->decay_p0n)){//isobaric decay
-            fdecaypathobj->getMember(i)->sim_neumult=0;
-        }else if (rneu>fdecaypathobj->getMember(i)->decay_p0n&&rneu<=fdecaypathobj->getMember(i)->decay_p0n+fdecaypathobj->getMember(i)->decay_p1n){//decay with 1 delayed neutron
-            fdecaypathobj->getMember(i)->sim_neumult=1;
-        }else{//decay with 2 delayed neutron
-            fdecaypathobj->getMember(i)->sim_neumult=2;
+        Double_t pbeta=rseed->Rndm();
+        if (pbeta<=(100-fdecaypathobj->getMember(i)->decay_abr)/100.){
+            Double_t rneu=rseed->Rndm();
+            if (rneu<=(fdecaypathobj->getMember(i)->decay_p0n)){//isobaric decay
+                fdecaypathobj->getMember(i)->sim_neumult=0;
+            }else if (rneu>fdecaypathobj->getMember(i)->decay_p0n&&rneu<=fdecaypathobj->getMember(i)->decay_p0n+fdecaypathobj->getMember(i)->decay_p1n){//decay with 1 delayed neutron
+                fdecaypathobj->getMember(i)->sim_neumult=1;
+            }else{//decay with 2 delayed neutron
+                fdecaypathobj->getMember(i)->sim_neumult=2;
+            }
+
+            fdecaypathobj->getMember(i)->sim_ispopulated=true;
+            //! isomer "population"
+            if (fdecaypathobj->getMember(i)->gspatner>=0){
+                Double_t rpop=rseed->Rndm();
+                if (rpop<fdecaypathobj->getMember(i)->population_ratio){
+                    fdecaypathobj->getMember(i)->sim_ispopulated=true;
+                    fdecaypathobj->getMember(fdecaypathobj->getMember(i)->gspatner)->sim_ispopulated=false;
+                }else{
+                    fdecaypathobj->getMember(i)->sim_ispopulated=false;
+                    fdecaypathobj->getMember(fdecaypathobj->getMember(i)->gspatner)->sim_ispopulated=true;
+                }
+            }
+        }else{
+            fdecaypathobj->getMember(i)->sim_neumult=100;
+            fdecaypathobj->getMember(i)->sim_ispopulated=true;
         }
 
-        fdecaypathobj->getMember(i)->sim_ispopulated=true;
-        //! isomer "population"
-        if (fdecaypathobj->getMember(i)->gspatner>=0){
-            Double_t rpop=rseed->Rndm();
-            if (rpop<fdecaypathobj->getMember(i)->population_ratio){
-                fdecaypathobj->getMember(i)->sim_ispopulated=true;
-                fdecaypathobj->getMember(fdecaypathobj->getMember(i)->gspatner)->sim_ispopulated=false;
-            }else{
-                fdecaypathobj->getMember(i)->sim_ispopulated=false;
-                fdecaypathobj->getMember(fdecaypathobj->getMember(i)->gspatner)->sim_ispopulated=true;
-            }
-        }
         fdecaypathobj->getMember(i)->sim_T=rseed->Exp(fdecaypathobj->getMember(i)->decay_hl/TMath::Log(2));
     }
 
@@ -806,6 +867,12 @@ void simulation::correlateData()
         simulationdatatype betahit = betaMap_it->second;
         copydata(fbetaData,betahit);
 
+        //! alpha tag (energy)
+        fmlh_idalpha = 0;
+        if (fbetaData.mode==10){
+            fmlh_idalpha = fbetaData.id;
+        }
+
         //! with neutron forward
         fcorrNeutronData_fw.mult=0;
         double ts1 = ts - 0;
@@ -882,4 +949,5 @@ void simulation::correlateData()
         k++;
     }
 }
+
 

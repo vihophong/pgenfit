@@ -58,12 +58,19 @@ typedef struct {
 } simulationdatatypemult;
 
 typedef struct{
+    Double_t alphaeff=100.;
     Double_t betaeff=50.; //percentage of an isotope
     Double_t neutroneff=68*0.95; //neutron detection efficiency in percentage
 
     Double_t deltaxy=2.5;
     Double_t dxbetamean=0;Double_t dxbetasigma=deltaxy/4.;
     Double_t dybetamean=0;Double_t dybetasigma=deltaxy/4.;
+
+
+    Double_t deltaxyalpha=1.;
+    Double_t dxalphamean=0;Double_t dxalphasigma=deltaxyalpha/8.;
+    Double_t dyalphamean=0;Double_t dyalphasigma=deltaxyalpha/8.;
+
     Double_t betaneutronmodtime=0.000021; //21 us moderationtime
     Double_t beamneutronmodtime=0.000027; //27 us moderationtime
 
@@ -211,6 +218,9 @@ class simulation
     TTree* ftreemlhbw;
     Double_t fmlh_t;
     Int_t fmlh_mult;
+
+    Int_t fmlh_idalpha;
+
     Double_t fmlhbw_t;
     Int_t fmlhbw_mult;
     TH1F* fsim_hdecay;

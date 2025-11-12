@@ -9,26 +9,26 @@ isfiximppos 0
 #If we choose beta background from histogram (hx.root and hy.root)
 ishistgausbkg 0
 #Beam time (add 1 at the begining to have more)
-beamtime 3600
+beamtime 40000
 #Beam rate rate
-beamrate 6.08889
+beamrate 0.1
 #Isotope percentage
 isoperctg 100.
 #Beta gaussian distributed background rate
-betabkgrateg 11.078
+betabkgrateg 0.0000000001
 #Beta uniform distributed background rate
 betabkgrateu 0.0000000001
 #External neutron bakground rate (reduce a bit, orignal value was 60.3635)
-neubkgrate 50.3635
+neubkgrate 0.000001
 #External 2 neutron bakground rate (8 may be fine?)
-r2neubkgrate 5.
+r2neubkgrate 0.000001
 #Percentage of neutron correlated with beta background gassian
-randbetaneuperctg 3.14
+randbetaneuperctg 0.00001
 #Percentage of 2 neutron correlated with beta background gassian
-randbeta2neuperctg 0.12
+randbeta2neuperctg 0.000001
 
 #Beta efficiency
-betaeff 41.7391
+betaeff 50.
 #Neutron efficiency
 neueff 66.8
 #Beta Neutron moderation time in second
@@ -37,7 +37,7 @@ betaneutronmodtime 0.000021
 beamneutronmodtime 0.000027
 
 #DeltaXY limited correlation area (set very large value, say 100000 to select all)
-deltaxylimit 10.
+deltaxylimit 1.5
 #DeltaXY used for making correlation
 deltaxycorr 2.
 #DeltaX (distance from implantation) mean
@@ -48,6 +48,20 @@ dxbetasigma 0.2
 dybetamean 0.
 #DeltaY sigma
 dybetasigma 0.2
+
+
+#ALPHA efficiency
+alphaeff 100.
+#ALPHA-DeltaXY limited correlation area (set very large value, say 100000 to select all)
+deltaxylimitalpha 1.
+#ALPHA-DeltaX (distance from implantation) mean
+dxalphamean 0.
+#ALPHA-DeltaX sigma
+dxalphasigma 0.12
+#ALPHA-DeltaY (distance from implantation) mean
+dyalphamean 0.
+#ALPHA-DeltaY sigma
+dyalphasigma 0.12
 
 #max-min of implantation profile
 xmin 0.

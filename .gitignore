@@ -1,0 +1,2 @@
+# Ignore all symbolic links
+**/*@   # the @ marks symbolic links in glob syntax

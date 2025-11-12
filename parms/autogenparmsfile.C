@@ -51,6 +51,8 @@
 #include <sstream>
 #include <string>
 
+#define P2NVARY 0
+#define P1NVARY 5
 
 using namespace std; 
 
@@ -136,6 +138,12 @@ typedef struct {
     Double_t decay_2neueff;
     Double_t decay_2neuefferr;
     Double_t decay_2neuefferrHi;
+    Double_t decay_bbr;        // beta branch (%)
+    Double_t decay_bbrerr;     // D_b_br (|?| or 1?)
+    Double_t decay_bbrerrhi;   // D_b_br_Hi (asymmetric +)
+    Double_t decay_abr;        // alpha branch (%)
+    Double_t decay_abrerr;     // D_a_br
+    Double_t decay_abrerrhi;   // D_a_br_Hi
 
     Int_t flag;
 } MemberDef;
@@ -172,6 +180,14 @@ void CopyMember(MemberDef* source, MemberDef* destination)
     destination-> decay_2neueff = source->  decay_2neueff;
     destination-> decay_2neuefferr = source->  decay_2neuefferr;
     destination-> decay_2neuefferrHi = source->  decay_2neuefferrHi;
+
+
+    destination->decay_bbr      = source->decay_bbr;
+    destination->decay_bbrerr   = source->decay_bbrerr;
+    destination->decay_bbrerrhi = source->decay_bbrerrhi;
+    destination->decay_abr      = source->decay_abr;
+    destination->decay_abrerr   = source->decay_abrerr;
+    destination->decay_abrerrhi = source->decay_abrerrhi;
 
     destination-> flag = source->  flag;
 }
@@ -321,6 +337,7 @@ void autogenparmsfile(char* outputfile, Int_t Ainput=138, Int_t Zinput=50)
     while (std::getline(infile, line))
     {
         std::istringstream iss(line);
+        if (line.empty()) continue;
         if (line[0]=='#') continue;
         // decay properies
         MemberDef* obj=new MemberDef();
@@ -338,6 +355,15 @@ void autogenparmsfile(char* outputfile, Int_t Ainput=138, Int_t Zinput=50)
               obj->decay_p3n >> obj->decay_p3nerr >> obj->decay_neueff >> obj->decay_neuefferr >> obj->decay_neuefferrHi>>
               obj->decay_2neueff >> obj->decay_2neuefferr >> obj->decay_2neuefferrHi>>
               obj->decay_hlerrhi >> obj->decay_p1nerrhi >>obj->decay_p2nerrhi)) break;
+
+        // read 6 extra columns: b_br, D_b_br, D_b_br_Hi, a_br, D_a_br, D_a_br_Hi
+        if (!(iss >> obj->decay_bbr >> obj->decay_bbrerr >> obj->decay_bbrerrhi
+                  >> obj->decay_abr >> obj->decay_abrerr >> obj->decay_abrerrhi))
+        {
+            // fallback defaults if missing
+            obj->decay_bbr = 100.0; obj->decay_bbrerr = 0.0; obj->decay_bbrerrhi = 0.0;
+            obj->decay_abr = 0.0;   obj->decay_abrerr = 0.0; obj->decay_abrerrhi = 0.0;
+        }
 
         obj->decay_p0n=100- obj->decay_p1n - obj->decay_p2n - obj->decay_p3n;
         obj->decay_p0nerr = sqrt(obj->decay_p1nerr*obj->decay_p1nerr+obj->decay_p2nerr*obj->decay_p2nerr+obj->decay_p3nerr*obj->decay_p3nerr);
@@ -383,8 +409,8 @@ void autogenparmsfile(char* outputfile, Int_t Ainput=138, Int_t Zinput=50)
         if ((*listofdecaymember_it)->z==Zinput&&(*listofdecaymember_it)->n==Ninput) {
             MemberDef* obj=new MemberDef();
             CopyMember(*listofdecaymember_it,obj);
-            if (obj->decay_p1n==0) obj->decay_p1n=50;
-            if (obj->decay_p2n==0) obj->decay_p2n=25;
+            if (obj->decay_p1n==0) obj->decay_p1n=P1NVARY;
+            if (obj->decay_p2n==0) obj->decay_p2n=P2NVARY;
             listofavailablemember.emplace(listofavailablemember.end(),obj);
             break;
         }
@@ -402,38 +428,52 @@ void autogenparmsfile(char* outputfile, Int_t Ainput=138, Int_t Zinput=50)
                     if (((*listofdecaymember_it2)->z-(*listofdecaymember_it)->z)==1){
                         if (((*listofdecaymember_it2)->n-(*listofdecaymember_it)->n)==-1){//p0n
                             if ((*listofdecaymember_it)->decay_p0n>0){
-                                cout<<(*listofdecaymember_it2)->name<<endl;
+//                                cout<<"AAA"<<(*listofdecaymember_it2)->name<<endl;
                                 (*listofdecaymember_it)->flag=1;
                                 MemberDef* obj=new MemberDef();
                                 CopyMember(*listofdecaymember_it2,obj);
+                                if (100.0 - obj->decay_abr < 0.01)  // decay_abr is in percent
+                                    obj->flag = 1;
                                 listofavailablemember.emplace(listofavailablemember.end(),obj);
                                 ndaughter++;
                             }
                         }else if (((*listofdecaymember_it2)->n-(*listofdecaymember_it)->n)==-2){//p1n
                             if ((*listofdecaymember_it)->decay_p1n>0){
-                                cout<<(*listofdecaymember_it2)->name<<endl;
+//                                cout<<(*listofdecaymember_it2)->name<<endl;
                                 (*listofdecaymember_it)->flag=1;
                                 MemberDef* obj=new MemberDef();
                                 CopyMember(*listofdecaymember_it2,obj);
+
+                                if (100.0 - obj->decay_abr < 0.01)  // decay_abr is in percent
+                                    obj->flag = 1;
                                 listofavailablemember.emplace(listofavailablemember.end(),obj);
+
+
                                 ndaughter++;
                             }
                         }else if (((*listofdecaymember_it2)->n-(*listofdecaymember_it)->n)==-3){//p2n
                             if ((*listofdecaymember_it)->decay_p2n>0){
-                                cout<<(*listofdecaymember_it2)->name<<endl;
+//                                cout<<(*listofdecaymember_it2)->name<<endl;
                                 (*listofdecaymember_it)->flag=1;
                                 MemberDef* obj=new MemberDef();
                                 CopyMember(*listofdecaymember_it2,obj);
+                                if (100.0 - obj->decay_abr < 0.01)  // decay_abr is in percent
+                                    obj->flag = 1;
                                 listofavailablemember.emplace(listofavailablemember.end(),obj);
+
+
                                 ndaughter++;
                             }
                         }else if (((*listofdecaymember_it2)->n-(*listofdecaymember_it)->n)==-4){//p3n
                             if ((*listofdecaymember_it)->decay_p3n>0){
-                                cout<<(*listofdecaymember_it2)->name<<endl;
+//                                cout<<(*listofdecaymember_it2)->name<<endl;
                                 (*listofdecaymember_it)->flag=1;
                                 MemberDef* obj=new MemberDef();
                                 CopyMember(*listofdecaymember_it2,obj);
+                                if (100.0 - obj->decay_abr < 0.01)  // decay_abr is in percent
+                                    obj->flag = 1;
                                 listofavailablemember.emplace(listofavailablemember.end(),obj);
+
                                 ndaughter++;
                             }
                         }
@@ -522,19 +562,27 @@ void autogenparmsfile(char* outputfile, Int_t Ainput=138, Int_t Zinput=50)
     std::ofstream str(outputfile);
     str<<"# Note should start from #, non-zero upper value indicate varying variable, half-life is in second"<<endl;
     str<<"# RI should be in the sequences of increasing Z and decreasing A for each isotropic row"<<endl;
-    str<<"#Name	Z	A	Half-life	Abs_Error_Half-life Abs_Error_Half-life_Hi	lowerHL	upperHL	P1n	Abs_Error_P1n   Abs_Error_P1n_Hi	lowerP1n	upperP1n	P2n	Abs_Error_P2n   Abs_Error_P2n_Hi	lowerP2n	upperP2n	Neu.Eff	Neu.Eff Err	Neu.Eff ErrHi	lowerNeu.Eff	upperNeu.Eff    isomer_ratio	isomer_ratio_err	lower_isomer_ratio	upper_isomer_ratio  ..."<<endl;
+    str << "#Name\tZ\tA\tHalf-life\tAbs_Error_HL\tAbs_Error_HL_Hi\tlowerHL\tupperHL\t"
+        "P1n\tAbs_Error_P1n\tAbs_Error_P1n_Hi\tlowerP1n\tupperP1n\t"
+        "P2n\tAbs_Error_P2n\tAbs_Error_P2n_Hi\tlowerP2n\tupperP2n\t"
+        "Neu.Eff\tNeu.Eff_Err\tNeu.Eff_ErrHi\tlowerNeu.Eff\tupperNeu.Eff\t"
+        "AlphaBR\tD_AlphaBR\tD_AlphaBR_Hi\tlowerAlphaBR\tupperAlphaBR\n";
     idd=0;
     for (listofdecaymember_it = listofavailablemembersorted.begin(); listofdecaymember_it != listofavailablemembersorted.end(); listofdecaymember_it++)
     {
         MemberDef* obj=*listofdecaymember_it;
         cout<<obj->name<<endl;
         if (idd==0){
-            str<<obj->name<<"\t"<<obj->z<<"\t"<<obj->a<<"\t"<<-obj->decay_hl<<"\t"<<obj->decay_hlerr<<"\t"<<obj->decay_hlerrhi<<"\t"<<obj->decay_hl/5<<"\t"<<obj->decay_hl*5<<"\t"<<-obj->decay_p1n<<"\t"<<obj->decay_p1nerr<<"\t"<<obj->decay_p1nerrhi<<"\t"<<0.<<"\t"<<200.<<"\t"<<-obj->decay_p2n<<"\t"<<obj->decay_p2nerr<<"\t"<<obj->decay_p2nerrhi<<"\t"<<0.<<"\t"<<200.<<"\t"<<obj->decay_neueff*deadtime_corr<<"\t"<<obj->decay_neuefferr*deadtime_corr<<"\t"<<obj->decay_neuefferrHi*deadtime_corr<<"\t"<<0.<<"\t"<<1.<<endl;
+//            str<<obj->name<<"\t"<<obj->z<<"\t"<<obj->a<<"\t"<<-obj->decay_hl<<"\t"<<obj->decay_hlerr<<"\t"<<obj->decay_hlerrhi<<"\t"<<obj->decay_hl/5<<"\t"<<obj->decay_hl*5<<"\t"<<obj->decay_p1n<<"\t"<<obj->decay_p1nerr<<"\t"<<obj->decay_p1nerrhi<<"\t"<<0.<<"\t"<<200.<<"\t"<<obj->decay_p2n<<"\t"<<obj->decay_p2nerr<<"\t"<<obj->decay_p2nerrhi<<"\t"<<0.<<"\t"<<200.<<"\t"<<obj->decay_neueff*deadtime_corr<<"\t"<<obj->decay_neuefferr*deadtime_corr<<"\t"<<obj->decay_neuefferrHi*deadtime_corr<<"\t"<<0.<<"\t"<<1.<<endl;
+            str<<obj->name<<"\t"<<obj->z<<"\t"<<obj->a<<"\t"<<-obj->decay_hl<<"\t"<<obj->decay_hlerr<<"\t"<<obj->decay_hlerrhi<<"\t"<<obj->decay_hl/5<<"\t"<<obj->decay_hl*5<<"\t"<<obj->decay_p1n<<"\t"<<obj->decay_p1nerr<<"\t"<<obj->decay_p1nerrhi<<"\t"<<0.<<"\t"<<200.<<"\t"<<obj->decay_p2n<<"\t"<<obj->decay_p2nerr<<"\t"<<obj->decay_p2nerrhi<<"\t"<<0.<<"\t"<<200.<<"\t"<<obj->decay_neueff*deadtime_corr<<"\t"<<obj->decay_neuefferr*deadtime_corr<<"\t"<<obj->decay_neuefferrHi*deadtime_corr<<"\t"<<0.<<"\t"<<1.<<"\t"
+              << obj->decay_abr << "\t" << obj->decay_abrerr << "\t" << obj->decay_abrerrhi << "\t"
+              << 0. << "\t" << 200.<<endl;
         }else{
-            str<<obj->name<<"\t"<<obj->z<<"\t"<<obj->a<<"\t"<<obj->decay_hl<<"\t"<<obj->decay_hlerr<<"\t"<<obj->decay_hlerrhi<<"\t"<<obj->decay_hl/5<<"\t"<<obj->decay_hl*5<<"\t"<<obj->decay_p1n<<"\t"<<obj->decay_p1nerr<<"\t"<<obj->decay_p1nerrhi<<"\t"<<0.<<"\t"<<200.<<"\t"<<obj->decay_p2n<<"\t"<<obj->decay_p2nerr<<"\t"<<obj->decay_p2nerrhi<<"\t"<<0.<<"\t"<<200.<<"\t"<<obj->decay_neueff*deadtime_corr<<"\t"<<obj->decay_neuefferr*deadtime_corr<<"\t"<<obj->decay_neuefferrHi*deadtime_corr<<"\t"<<0.<<"\t"<<1.<<endl;
-
+//            str<<obj->name<<"\t"<<obj->z<<"\t"<<obj->a<<"\t"<<obj->decay_hl<<"\t"<<obj->decay_hlerr<<"\t"<<obj->decay_hlerrhi<<"\t"<<obj->decay_hl/5<<"\t"<<obj->decay_hl*5<<"\t"<<obj->decay_p1n<<"\t"<<obj->decay_p1nerr<<"\t"<<obj->decay_p1nerrhi<<"\t"<<0.<<"\t"<<200.<<"\t"<<obj->decay_p2n<<"\t"<<obj->decay_p2nerr<<"\t"<<obj->decay_p2nerrhi<<"\t"<<0.<<"\t"<<200.<<"\t"<<obj->decay_neueff*deadtime_corr<<"\t"<<obj->decay_neuefferr*deadtime_corr<<"\t"<<obj->decay_neuefferrHi*deadtime_corr<<"\t"<<0.<<"\t"<<1.<<endl;
+            str<<obj->name<<"\t"<<obj->z<<"\t"<<obj->a<<"\t"<<obj->decay_hl<<"\t"<<obj->decay_hlerr<<"\t"<<obj->decay_hlerrhi<<"\t"<<obj->decay_hl/5<<"\t"<<obj->decay_hl*5<<"\t"<<obj->decay_p1n<<"\t"<<obj->decay_p1nerr<<"\t"<<obj->decay_p1nerrhi<<"\t"<<0.<<"\t"<<200.<<"\t"<<obj->decay_p2n<<"\t"<<obj->decay_p2nerr<<"\t"<<obj->decay_p2nerrhi<<"\t"<<0.<<"\t"<<200.<<"\t"<<obj->decay_neueff*deadtime_corr<<"\t"<<obj->decay_neuefferr*deadtime_corr<<"\t"<<obj->decay_neuefferrHi*deadtime_corr<<"\t"<<0.<<"\t"<<1.<<"\t"
+              << obj->decay_abr << "\t" << obj->decay_abrerr << "\t" << obj->decay_abrerrhi << "\t"
+              << 0. << "\t" << 200.<<endl;
         }
-
         idd++;
     }
     char tmp[500];

@@ -106,15 +106,21 @@ public:
           delete p[i];
   }
   Double_t fcndecay(Double_t *x, Double_t *par) const;
+  Double_t fcndecayAlpha(Double_t *x, Double_t *par) const;
+  Double_t fcndecayAlphanobkg(Double_t *x, Double_t *par) const;
   Double_t fcndecay1n(Double_t *x, Double_t *par) const;
   Double_t fcndecay2n(Double_t *x, Double_t *par) const;
 
   //! for plotting
   Double_t fcndecay_parent(Double_t *x, Double_t *par) const;
+  Double_t fcndecay_parentnobkg(Double_t *x, Double_t *par) const;
   Double_t fcndecay1n_parent(Double_t *x, Double_t *par) const;
   Double_t fcndecay2n_parent(Double_t *x, Double_t *par) const;
   Double_t fcndecay_daugter(Double_t *x, Double_t *par) const{
       return fcndecay(x, par)-fcndecay_parent(x, par)+par[fpath->nri5+8]+par[fpath->nri5+9]*x[0];
+  }
+  Double_t fcndecay_daugternobkg(Double_t *x, Double_t *par) const{
+      return fcndecay(x, par)-fcndecay_parent(x, par);
   }
   Double_t fcndecay1n_daugter(Double_t *x, Double_t *par) const{//Dec28, 2023, found bug on this
       return fcndecay1n(x, par)-fcndecay1n_parent(x, par)+par[fpath->nri5+10]+par[fpath->nri5+11]*x[0];
@@ -141,6 +147,7 @@ public:
 protected:
   path* fpath;
   void calculateDecay(Double_t &fdecayall,Double_t &fparent, Double_t* fdaugters, Double_t *l,Double_t *e,Double_t *p1n,Double_t *p2n,Double_t *py,Double_t N0,Double_t be) const;
+  void calculateDecayAlpha(Double_t &fdecayall,Double_t &fparent, Double_t* fdaugters, Double_t *l,Double_t *e,Double_t *p1n,Double_t *p2n,Double_t *py,Double_t N0,Double_t be) const;
   Double_t calculateDecay1n(Double_t fparent, Double_t* fdaugters, Double_t *p1n,Double_t *p2n,Double_t *ne,Double_t randcoinf1n,Double_t randcoinfgt0n,Double_t be,Double_t b1ne,Double_t b2ne,Double_t n1n2ne) const;
   Double_t calculateDecay2n(Double_t fparent, Double_t* fdaugters, Double_t *p1n,Double_t *p2n,Double_t *ne,Double_t randcoinf1n,Double_t randcoinfgt0n,Double_t be,Double_t randcoinf2n,Double_t b1ne,Double_t b2ne,Double_t n1n2ne) const;
 

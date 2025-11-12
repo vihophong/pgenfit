@@ -1,0 +1,8 @@
+# Note should start from #, non-zero upper value indicate varying variable, half-life is in second
+# RI should be in the sequences of increasing Z and decreasing A for each isotropic row
+#Name	Z	A	Half-life	Abs_Error_HL	Abs_Error_HL_Hi	lowerHL	upperHL	P1n	Abs_Error_P1n	Abs_Error_P1n_Hi	lowerP1n	upperP1n	P2n	Abs_Error_P2n	Abs_Error_P2n_Hi	lowerP2n	upperP2n	Neu.Eff	Neu.Eff_Err	Neu.Eff_ErrHi	lowerNeu.Eff	upperNeu.Eff	AlphaBR	D_AlphaBR	D_AlphaBR_Hi	lowerAlphaBR	upperAlphaBR
+^{212}Pb	82	212	-38260.8	21.6	21.6	7652.16	191304	5	0	0	0	200	0	0	0	0	200	0.646575	0.0193585	0.0193585	0	1	0	0	0	0	200
+^{212}Bi	83	212	3633.06	3.54	3.54	726.612	18165.3	0	0	0	0	200	0	0	0	0	200	0.646575	0.0193585	0.0193585	0	1	35.94	0.06	0.06	0	200
+^{211}Bi	83	211	128.4	1.8	1.8	25.68	642	0	0	0	0	200	0	0	0	0	200	0.646575	0.0193585	0.0193585	0	1	99.724	0.004	0.004	0	200
+^{212}Po	84	212	2.95e-07	4e-10	4e-10	5.9e-08	1.475e-06	0	0	0	0	200	0	0	0	0	200	0.646575	0.0193585	0.0193585	0	1	100	0	0	0	200
+^{211}Po	84	211	0.516	0.003	0.003	0.1032	2.58	0	0	0	0	200	0	0	0	0	200	0.646575	0.0193585	0.0193585	0	1	100	0	0	0	200

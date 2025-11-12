@@ -37,6 +37,13 @@
 #include "TFrame.h"
 #include <sstream>
 
+#include <unordered_set>
+#include <unordered_map>
+#include <deque>
+#include <sstream>
+#include <algorithm>
+#include <cctype>
+
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 decaypath::decaypath():
@@ -105,6 +112,8 @@ void decaypath::ProcessMember(MemberDef *obj)
         obj->is_decay_p1n_fix=1;
     }
 
+
+
     if (obj->decay_p2n<0){
         obj->decay_p2n=-obj->decay_p2n;
         obj->is_decay_p2n_fix=0;
@@ -112,6 +121,16 @@ void decaypath::ProcessMember(MemberDef *obj)
         obj->is_decay_p2n_fix=2;
     }else{
         obj->is_decay_p2n_fix=1;
+    }
+
+
+    if (obj->decay_abr<0){
+        obj->decay_abr=-obj->decay_abr;
+        obj->is_decay_abr_fix=0;
+    }else if (obj->decay_abr>-0.0000000001&&obj->decay_abr<0.0000000001){//exclude decay with alphadecay = 0;
+        obj->is_decay_abr_fix=2;
+    }else{
+        obj->is_decay_abr_fix=1;
     }
 
     if (obj->neueff<0){
@@ -328,6 +347,28 @@ void decaypath::makePath()
             flagisomer = true;
         }
 
+        // Optional Beta/Alpha block
+//        double betaBR=100, dBeta=0, dBetaHi=0, loBeta=0, upBeta=200;
+        double alphaBR=0,  dAlpha=0, dAlphaHi=0, loAlpha=0, upAlpha=200;
+        {
+            std::streampos pos = iss.tellg();
+            if (iss >> alphaBR >> dAlpha >> dAlphaHi >> loAlpha >> upAlpha) {
+                obj->decay_abr = alphaBR;
+                obj->decay_bbr = 100-alphaBR;
+                obj->decay_abrerr = dAlpha;
+                obj->decay_abrerrhi = dAlphaHi;
+                obj->decay_abrlow = loAlpha;
+                obj->decay_abrup = upAlpha;
+            } else {
+                iss.clear(); iss.seekg(pos);
+                obj->decay_bbr = 100.0;
+                obj->decay_abr = 0.0;
+                obj->decay_abrerr = 0;
+                obj->decay_abrerrhi = 0;
+                obj->decay_abrlow = 0;
+                obj->decay_abrup = 200.;
+            }
+        }
         //! ground state
         ProcessMember(obj);
         flistofdecaymember.emplace(flistofdecaymember.end(),obj);
@@ -347,7 +388,7 @@ void decaypath::makePath()
     {
         for (listofdecaymember_it2 = flistofdecaymember.begin(); listofdecaymember_it2 != flistofdecaymember.end(); listofdecaymember_it2++)
         {
-            if (((*flistofdecaymember_it)->z-(*listofdecaymember_it2)->z)==1){
+            if (((*flistofdecaymember_it)->z-(*listofdecaymember_it2)->z)==1){//beta decay
                 if (((*flistofdecaymember_it)->n-(*listofdecaymember_it2)->n)==-1){//p0n
                     appendvectors((*listofdecaymember_it2)->path,(*flistofdecaymember_it)->path,(*flistofdecaymember_it)->id,
                                   (*listofdecaymember_it2)->nneupath,(*flistofdecaymember_it)->nneupath,0);
@@ -359,7 +400,14 @@ void decaypath::makePath()
                                   (*listofdecaymember_it2)->nneupath,(*flistofdecaymember_it)->nneupath,2);
                 }
             }
+            // add this alpha block here (or right after the closing brace above)
+            if (((*flistofdecaymember_it)->z-(*listofdecaymember_it2)->z)==-2 &&
+                ((*flistofdecaymember_it)->n-(*listofdecaymember_it2)->n)==-2) {
+                appendvectors((*listofdecaymember_it2)->path,(*flistofdecaymember_it)->path,(*flistofdecaymember_it)->id,
+                              (*listofdecaymember_it2)->nneupath,(*flistofdecaymember_it)->nneupath, 100);
+            }
         }
+
     }
 
     fdecaypath->npaths=0;
@@ -374,6 +422,7 @@ void decaypath::makePath()
             Double_t previd=0;
             Double_t prevp1n=0;
             Double_t prevp2n=0;
+            Double_t prevalpha=0;
             Bool_t isflow=true;
             fdecaypath->ndecay[fdecaypath->npaths]=(*flistofdecaymember_it)->path[i].size();
             for (Size_t j=0;j<(*flistofdecaymember_it)->path[i].size();j++){
@@ -387,27 +436,33 @@ void decaypath::makePath()
                         Double_t presn=(*listofdecaymember_it2)->n;
                         Double_t presid=(*listofdecaymember_it2)->id;
                         if (prevz+prevn==presz+presn){
-                            if ((1-prevp1n+prevp2n)==0) {
+                            if ((1-prevp1n+prevp2n)<=0.0000000000001) {
                                 isflow=false;
                             }
+                            if (prevalpha>99.9999999)
+                                isflow=false;
                         }else if(presz+presn==prevz+prevn-1){
-                            if (prevp1n==0) {
+                            if (prevp1n<=0.0000000000001) {
                                 isflow=false;
                             }
+                            if (prevalpha>99.9999999)
+                                isflow=false;
                         }else if((presz+presn==prevz+prevn-2)){
-                            if (prevp2n==0) {
+                            if (prevp2n<=0.0000000000001) {
                                 isflow=false;
                             }
+                            if (prevalpha>99.9999999)
+                                isflow=false;
                         }
 
                         prevz=presz;
                         prevn=presn;
                         prevp1n=(*listofdecaymember_it2)->decay_p1n;
                         prevp2n=(*listofdecaymember_it2)->decay_p2n;
+                        prevalpha=(*listofdecaymember_it2)->decay_abr;
                         previd=presid;
                     }
                 }//end of check if the current member matched
-
             }
             fdecaypath->ispathhasflow[fdecaypath->npaths]=isflow;
             //cout<<"Flow"<<fdecaypath->npaths<<"\t"<<isflow<<endl;
@@ -419,7 +474,6 @@ void decaypath::makePath()
             fdecaypath->npaths++;
         }
     }
-
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -428,9 +482,16 @@ void decaypath::writePath()
 {
     std::ofstream pathfile("path.txt");
     pathfile<<fdecaypath->nri<<std::endl;
-    pathfile<<fdecaypath->npaths<<std::endl;
+    Int_t npaths=0;
+    for (int i=0;i<fdecaypath->npaths;i++){
+        if (fdecaypath->ndecay[i]>1)
+            npaths ++;
+    }
+    pathfile<<npaths<<std::endl;
 
     for (int i=0;i<fdecaypath->npaths;i++){
+        if (fdecaypath->ndecay[i]<=1)
+            continue;
         pathfile<<fdecaypath->ndecay[i]<<std::endl;
         pathfile<<fdecaypath->ispathhasflow[i]<<std::endl;
         for (int j=0;j<fdecaypath->ndecay[i];j++){
@@ -636,6 +697,7 @@ void decaypath::drawPath(char* outputFileName)
             Double_t previd=0;
             Double_t prevp1n=0;
             Double_t prevp2n=0;
+            Double_t prevalpha=0;
             Bool_t isplot=true;
 
             std::list<MemberDef*>::iterator listofdecaymember_it2;
@@ -651,23 +713,34 @@ void decaypath::drawPath(char* outputFileName)
 
 
                         if (prevz+prevn==presz+presn){
-                            if ((1-prevp1n+prevp2n)==0) {
+                            if ((1-prevp1n+prevp2n)<=0.0000000000001) {
                                 isplot=false;
                             }
+                            if (prevalpha>99.9999999)
+                                isplot=false;
                         }else if(presz+presn==prevz+prevn-1){
-                            if (prevp1n==0) {
+                            if (prevp1n<=0.0000000000001) {
                                 isplot=false;
                             }
+                            if (prevalpha>99.9999999)
+                                isplot=false;
                         }else if((presz+presn==prevz+prevn-2)){
-                            if (prevp2n==0) {
+                            if (prevp2n<=0.0000000000001) {
                                 isplot=false;
                             }
+                            if (prevalpha>99.9999999)
+                                isplot=false;
                         }
 
                         if (prevz!=0&&isplot){
                             arr.DrawArrow(prevn,prevz,presn,presz,0.01,">");
                             //! A trick for plotting, draw at the end of each track another arrow
-                            arr.DrawArrow(presn,presz,presn-1,presz+1,0.01,">");
+                            if (1-(*listofdecaymember_it2)->decay_abr>0.){
+                                arr.DrawArrow(presn,presz,presn-1,presz+1,0.01,">");
+                            }
+                            if (((*listofdecaymember_it2)->decay_abr)>0.){
+                                arr.DrawArrow(presn,presz,presn-2,presz-2,0.01,">");
+                            }
                             isplotiso++;
                             //latex.DrawLatex((*listofdecaymember_it2)->n-0.5,(*listofdecaymember_it2)->z,Form("%s",(*listofdecaymember_it2)->name.Data()));
                         }
@@ -676,6 +749,7 @@ void decaypath::drawPath(char* outputFileName)
                         prevn=presn;
                         prevp1n=(*listofdecaymember_it2)->decay_p1n;
                         prevp2n=(*listofdecaymember_it2)->decay_p2n;
+                        prevalpha=(*listofdecaymember_it2)->decay_abr;
                         previd=presid;
                     }
                 }
