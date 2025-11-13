@@ -1355,6 +1355,7 @@ void unbinfit::writeFitComponents()
     fB_alpha->Write();
     fB_alphanobkg->Write();
     fA_all->Write();
+    fA_bkgneg->Write();
     hA->Write();
     //    fSB_parent->Write();
     //    fSB_daugter->Write();
@@ -1802,7 +1803,7 @@ void unbinfit::Run()
         printCurrentParameters();
         doFit();
         writeResultsMC();
-        //        calculateChiSquare();
+//        calculateChiSquare();
     }
 
     writeOutputTree();
