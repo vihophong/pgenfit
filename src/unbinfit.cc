@@ -1317,6 +1317,9 @@ void unbinfit::writeFitComponents()
     fA_bkgneg->SetNpx(nbinsHB*10);
     fA_bkgneg->SetLineWidth(3);
     fA_bkgneg->SetLineColor(7);
+    fA_bkgpos->SetNpx(nbinsHB*10);
+    fA_bkgpos->SetLineWidth(3);
+    fA_bkgpos->SetLineColor(7);
 
     //    fSB->SetNpx(nbinsHSB*10);
     //    fSB_bkgneg->SetNpx(nbinsHSB*10);
@@ -1356,6 +1359,7 @@ void unbinfit::writeFitComponents()
     fB_alphanobkg->Write();
     fA_all->Write();
     fA_bkgneg->Write();
+    fA_bkgpos->Write();
     hA->Write();
     //    fSB_parent->Write();
     //    fSB_daugter->Write();
