@@ -62,7 +62,7 @@ double neueff=0.668*(1-0.0320731);//nominal efficiency
 double neuefferr=0.02*(1-0.0320731);
 
 string extractIntegerWords(string str) 
-{ 
+{
   stringstream ss; 
 
   /* Storing the whole string into string stream */

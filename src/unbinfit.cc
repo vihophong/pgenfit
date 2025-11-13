@@ -190,9 +190,9 @@ void unbinfit::fitBackground(Int_t opt)
     bkg1nratio=new RooRealVar("bkg1nratio","bkg1nratio",ini_nnbkg1n/ini_nnbkg,ini_nnbkg1n/ini_nnbkg/5,ini_nnbkg1n/ini_nnbkg*5) ;
     bkg2nratio=new RooRealVar("bkg2nratio","bkg2nratio",ini_nnbkg2n/ini_nnbkg1n,ini_nnbkg2n/ini_nnbkg1n/5,ini_nnbkg2n/ini_nnbkg1n*5) ;
 
-    RooRealVar slope1("slope1","slope1",0.,-0.1,0.1) ;
-    RooRealVar slope2("slope2","slope2",0.,-0.1,0.1) ;
-    RooRealVar slope3("slope3","slope3",0.,-0.1,0.1) ;
+    RooRealVar slope1("slope1","slope1",0.,-0.5,0.5) ;
+    RooRealVar slope2("slope2","slope2",0.,-0.5,0.5) ;
+    RooRealVar slope3("slope3","slope3",0.,-0.5,0.5) ;
 #ifdef FLAT_BACKGROUNDS
     slope1.setConstant();
     slope2.setConstant();
@@ -280,10 +280,14 @@ void unbinfit::fitBackground(Int_t opt)
     binfitbkgparms[4]=fSB2_bkgpos->GetParameter(0);
     binfitbkgparms[5]=fSB2_bkgpos->GetParameter(1);
 
-    fA_bkgneg=new TF1("fA_bkgneg","pol0",-p_timerange,0);
+    fA_bkgneg=new TF1("fA_bkgneg","pol1",-p_timerange,0);
+#ifdef FLAT_BACKGROUNDS_ALPHA
+    fA_bkgneg->FixParameter(1,0.);
+#endif
     hA->Fit(fA_bkgneg,"LEQR0+","goff");
-    fA_bkgpos=new TF1("fA_bkgpos","pol0",0,p_timerange);
+    fA_bkgpos=new TF1("fA_bkgpos","pol1",0,p_timerange);
     fA_bkgpos->FixParameter(0,fA_bkgneg->GetParameter(0));
+    fA_bkgpos->FixParameter(1,-fA_bkgneg->GetParameter(1));
 }
 
 //....oooOO0OOooo........ofooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -402,7 +406,8 @@ void unbinfit::initFitParameters()
         pvar[fdecaypath->getNMember()*4]->setConstant();
         pvar[fdecaypath->getNMember()*4+1]->setVal(be);
         pvar[fdecaypath->getNMember()*4+1]->setError(err_be);
-        pvar[fdecaypath->getNMember()*4+1]->setConstant();
+        if (isvary_be==0)
+            pvar[fdecaypath->getNMember()*4+1]->setConstant();
     }
 
     p[fdecaypath->getNMember()*5+4]=new RooRealVar(Form("p%d",fdecaypath->getNMember()*5+4),Form("p%d",fdecaypath->getNMember()*5+4),be,0,1);

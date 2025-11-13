@@ -36,7 +36,9 @@
 #define ISOMER_SUM_UNITY
 
 // set if flat backgrounds is used
-#define FLAT_BACKGROUNDS
+//#define FLAT_BACKGROUNDS
+//#define FLAT_BACKGROUNDS_ALPHA
+
 
 //#define DEBUG
 
