@@ -1548,7 +1548,7 @@ void unbinfit::plotResultsMore(Int_t opt)
         hdummyc0n->GetYaxis()->SetTitleSize(0.06);
         hdummyc0n->GetYaxis()->SetTitleOffset(0.58);
         hdummyc0n->GetYaxis()->SetTitle("Counts");
-        hdummyc0n->GetXaxis()->SetTitle("t_{#beta} - t_{ion} (s)");
+        hdummyc0n->GetXaxis()->SetTitle("t_{#beta(#alpha)} - t_{ion} (s)");
         hdummyc0n->GetYaxis()->SetLabelSize(0.05);
         hdummyc0n->GetXaxis()->SetTitleSize(0.06);
         hdummyc0n->GetXaxis()->SetLabelSize(0.05);
@@ -1658,7 +1658,7 @@ void unbinfit::plotResultsMore(Int_t opt)
     hdummyc0nres->GetYaxis()->SetTitleOffset(0.29);
 
     hdummyc0nres->GetXaxis()->SetLabelSize(0.14);
-    hdummyc0nres->GetXaxis()->SetTitle("t_{#beta} - t_{ion} (s)");
+    hdummyc0nres->GetXaxis()->SetTitle("t_{#alpha} - t_{ion} (s)");
     hdummyc0nres->GetXaxis()->SetTitleSize(0.17);
     hdummyc0nres->GetXaxis()->SetTitleOffset(0.95);
 
