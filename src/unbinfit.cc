@@ -986,14 +986,17 @@ void unbinfit::plotResults()
     Double_t a2=slope2posval*bkg1nratioval*bkg2nratioval;
     Double_t b2=(2*nbkg->getVal()*bkg1nratioval*bkg2nratioval-a2*p_timerange*p_timerange)/2/p_timerange*(p_timerange/nbinsHB*2);
 
-    fB_bkgpos->FixParameter(0,b0);
+    modelbkg0nCurvePositive->Fit(fB_bkgpos,"LQER+","goff");
+//    fB_bkgpos->Fit(0,b0);
     //    fSB_bkgpos->FixParameter(0,b1);
     //    fSB2_bkgpos->FixParameter(0,b2);
-    fB_bkgpos->FixParameter(1,a0);
+//    fB_bkgpos->FixParameter(1,a0);
     //    fSB_bkgpos->FixParameter(1,a1);
     //    fSB2_bkgpos->FixParameter(1,a2);
 
-    fB_bkgneg->FixParameter(0,b0);
+//    fB_bkgneg->FixParameter(0,b0);
+    modelbkg0nCurve->Fit(fB_bkgneg,"LQER+","goff");
+
     //    fSB_bkgneg->FixParameter(0,b1);
     //    fSB2_bkgneg->FixParameter(0,b2);
     //    fB_bkgneg->FixParameter(1,-a0);
