@@ -1017,8 +1017,9 @@ void unbinfit::plotResults()
     }
 
     //    b0 = modelbkg0nCurve->GetPointY(0);
-    fB->FixParameter(fdecaypath->getNMember()*5+8,b0);
-    fB->FixParameter(fdecaypath->getNMember()*5+9,a0);
+    fB->FixParameter(fdecaypath->getNMember()*5+8,fB_bkgpos->GetParameter(0));
+    fB->FixParameter(fdecaypath->getNMember()*5+9,,fB_bkgpos->GetParameter(1));
+
     //    fB->Write();
     //    fSB=new TF1("fSB",totdecaymodelforplot,&fitF_T12::fcndecay1n,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF_T12","fcndecay1n");
     //    for (int i=0;i<fdecaypath->getNMember()*5+8;i++){
@@ -1300,7 +1301,6 @@ void unbinfit::writeFitComponents()
         //        fSB2_c4->FixParameter(i,fSB2->GetParameter(i));
         //        fSB2_c134->FixParameter(i,fSB2->GetParameter(i));
     }
-
     fB->SetNpx(nbinsHB*10);
     fB_bkgneg->SetNpx(nbinsHB*10);
     fB_bkgpos->SetNpx(nbinsHB*10);
