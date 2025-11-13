@@ -962,7 +962,8 @@ void unbinfit::plotResults()
     //    model1nCurve->Write();
     //    model2nCurve->Write();
 
-    modelbkg0nHist->Write();\
+    modelbkg0nHist->Write();
+    modelbkg0nCurvePositive->Write();
     //    modelbkg1nHist->Write();
     //    modelbkg2nHist->Write();
 
