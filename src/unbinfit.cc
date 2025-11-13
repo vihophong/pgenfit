@@ -1018,7 +1018,7 @@ void unbinfit::plotResults()
 
     //    b0 = modelbkg0nCurve->GetPointY(0);
     fB->FixParameter(fdecaypath->getNMember()*5+8,fB_bkgpos->GetParameter(0));
-    fB->FixParameter(fdecaypath->getNMember()*5+9,,fB_bkgpos->GetParameter(1));
+    fB->FixParameter(fdecaypath->getNMember()*5+9,fB_bkgpos->GetParameter(1));
 
     //    fB->Write();
     //    fSB=new TF1("fSB",totdecaymodelforplot,&fitF_T12::fcndecay1n,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF_T12","fcndecay1n");
