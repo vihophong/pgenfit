@@ -252,11 +252,6 @@ void unbinfit::fitBackground(Int_t opt)
     fSB_bkgneg->FixParameter(1,0.);
     fSB2_bkgneg->FixParameter(1,0.);
 #endif
-    fB_bkgneg->FixParameter(1,slope3.getVal());
-    fSB_bkgneg->FixParameter(1,slope1.getVal());
-    fSB2_bkgneg->FixParameter(1,slope2.getVal());
-
-
     hB->Fit(fB_bkgneg,"LEQR0+","goff");
     hSB->Fit(fSB_bkgneg,"LEQR0+","goff");
     hSB2->Fit(fSB2_bkgneg,"LEQR0+","goff");
