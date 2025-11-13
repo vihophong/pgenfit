@@ -252,21 +252,25 @@ void unbinfit::fitBackground(Int_t opt)
     fSB_bkgneg->FixParameter(1,0.);
     fSB2_bkgneg->FixParameter(1,0.);
 #endif
-    hB->Fit(fB_bkgneg,"LEQR0+","goff");
-    hSB->Fit(fSB_bkgneg,"LEQR0+","goff");
-    hSB2->Fit(fSB2_bkgneg,"LEQR0+","goff");
+    if (ffitopt!=2){
+        hB->Fit(fB_bkgneg,"LEQR0+","goff");
+        hSB->Fit(fSB_bkgneg,"LEQR0+","goff");
+        hSB2->Fit(fSB2_bkgneg,"LEQR0+","goff");
+    }
 
 
     fB_bkgpos=new TF1("fB_bkgpos","pol1",p_deadtime,p_timerange);
     fSB_bkgpos=new TF1("fSB_bkgpos","pol1",p_deadtime,p_timerange);
     fSB2_bkgpos=new TF1("fSB2_bkgpos","pol1",p_deadtime,p_timerange);
-    fB_bkgpos->FixParameter(0,fB_bkgneg->GetParameter(0));
-    fSB_bkgpos->FixParameter(0,fSB_bkgneg->GetParameter(0));
-    fSB2_bkgpos->FixParameter(0,fSB2_bkgneg->GetParameter(0));
-    fB_bkgpos->FixParameter(1,-fB_bkgneg->GetParameter(1));
-    fSB_bkgpos->FixParameter(1,-fSB_bkgneg->GetParameter(1));
-    fSB2_bkgpos->FixParameter(1,-fSB2_bkgneg->GetParameter(1));
 
+    if (ffitopt!=2){
+        fB_bkgpos->FixParameter(0,fB_bkgneg->GetParameter(0));
+        fSB_bkgpos->FixParameter(0,fSB_bkgneg->GetParameter(0));
+        fSB2_bkgpos->FixParameter(0,fSB2_bkgneg->GetParameter(0));
+        fB_bkgpos->FixParameter(1,-fB_bkgneg->GetParameter(1));
+        fSB_bkgpos->FixParameter(1,-fSB_bkgneg->GetParameter(1));
+        fSB2_bkgpos->FixParameter(1,-fSB2_bkgneg->GetParameter(1));
+    }
 
     binfitbkgparms[0]=fB_bkgpos->GetParameter(0);
     binfitbkgparms[1]=fB_bkgpos->GetParameter(1);
