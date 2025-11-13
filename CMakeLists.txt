@@ -89,6 +89,7 @@ set(PROJ_DATA
   hy.root
   hx.root
   runsinglefitT12.sh
+  runsinglefitT12wFitRange.sh
   simulation_fit.sh
   simgetionentries.C
   simgetionentries.sh

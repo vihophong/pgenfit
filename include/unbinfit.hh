@@ -274,7 +274,7 @@ class unbinfit
     TH1F* hA;
     TF1* fA_bkgneg;
     TF1* fA_bkgpos;
-    TF1*fA_all;
+    TF1* fA_all;
 
     TF1* fB;
     TF1* fSB;
