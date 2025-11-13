@@ -930,9 +930,10 @@ void unbinfit::plotResults()
     //    xframe3->Draw() ;
     modelbkg0nHist=(RooHist*)xframe4->getHist("bkg0n2");
     modelbkg0nCurve=(RooCurve*)xframe4->getCurve("bkg0nmodel");
-    for (int i=0;i<modelbkg0nCurve->GetN();i++){
-        modelbkg0nCurve->SetPoint(i,modelbkg0nCurve->GetPointX(i),modelbkg0nCurvePositive->GetPointY(i));
-    }
+    //! wtf is this?
+//    for (int i=0;i<modelbkg0nCurve->GetN();i++){
+//        modelbkg0nCurve->SetPoint(i,modelbkg0nCurve->GetPointX(i),modelbkg0nCurvePositive->GetPointY(i));
+//    }
     //    modelbkg0nCurve->SetLineWidth(0);
     xframe4->Draw();
 
