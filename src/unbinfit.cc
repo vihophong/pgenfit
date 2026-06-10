@@ -995,6 +995,8 @@ void unbinfit::plotResults()
 
 //    fB_bkgneg->FixParameter(0,b0);
     modelbkg0nCurve->Fit(fB_bkgneg,"LQER+","goff");
+    fB_bkgpos->FixParameter(0,fB_bkgneg->GetParameter(0));
+    fB_bkgpos->FixParameter(1,-fB_bkgneg->GetParameter(1));
 
     //    fSB_bkgneg->FixParameter(0,b1);
     //    fSB2_bkgneg->FixParameter(0,b2);
