@@ -660,6 +660,7 @@ void unbinfit::setValParameters()
 
 void unbinfit::generateMC()
 {
+
     for (int i=0;i<fdecaypath->getNMember()*5+8;i++){
         if ((pvar[i]->isConstant())&&pValError[i]!=0) {
             if(i>=fdecaypath->getNMember()*4&&i<fdecaypath->getNMember()*5){//neutron efficiency parameter
@@ -670,9 +671,14 @@ void unbinfit::generateMC()
                 }
             }else{//other parameters
                 if (i<fdecaypath->getNMember()*3){//HL, P1n and P2n errors
-                    pVal[i]=rseedA->generate(pCentralVal[i],pValError[i],pValErrorHi[i]);
+                    if (pValError[i]==0||pValErrorHi[i]==0){//only fixed isomertic ratio affected
+                        pVal[i] = pCentralVal[i];
+                    }else{
+                        pVal[i]=rseedA->generate(pCentralVal[i],pValError[i],pValErrorHi[i]);
+                    }
                     //cout<<pCentralVal[i]<<"\t"<<pValError[i]<<"\t"<<pValErrorHi[i]<<endl;
-                }else{
+                }
+                else{
                     if (strcmp(pvar[i]->GetTitle(),(char*)"-")==0){//generate uniform random distribution
                         if (i==fdecaypath->getNMember()*5+7)//2n efficiency of parent
                             pVal[i]=pCentralVal[i]-pValError[i]+rseed->Rndm()*(pValError[i]+pvar[i]->getAsymErrorHi());
@@ -696,7 +702,9 @@ void unbinfit::generateMC()
 //        if (i==fdecaypath->getNMember()*4) pVal[i]=fmineffMC+rseed->Rndm()*(fmaxeffMC-fmineffMC);
 //#endif
     }
+
     nsigVal=nsigCentralVal;//reset central parameters after 1 fit
+
 
 
 //    nbkgVal = nbkgCentralVal;
@@ -749,15 +757,31 @@ void unbinfit::doFit()
 
     if (ffitopt==0)
 #ifdef GPUMODE
+#ifdef MINOS
+        fitres=final_pdf->fitTo(*data,BatchMode("cuda"),Save(kTRUE),Minos(true),PrintLevel(3));
+#else
         fitres=final_pdf->fitTo(*data,BatchMode("cuda"),Save(kTRUE),PrintLevel(3));
+#endif
+#else
+#ifdef MINOS
+        fitres=final_pdf->fitTo(*data,NumCPU(ncpu),Save(kTRUE),Minos(true),PrintLevel(3));
 #else
         fitres=final_pdf->fitTo(*data,NumCPU(ncpu),Save(kTRUE),PrintLevel(3));
 #endif
+#endif
     else
 #ifdef GPUMODE
+#ifdef MINOS
+        fitres=final_pdf->fitTo(*data,ExternalConstraints(*externalconstrains),Minos(true),BatchMode("cuda"),Save(kTRUE),PrintLevel(3));
+#else
         fitres=final_pdf->fitTo(*data,ExternalConstraints(*externalconstrains),BatchMode("cuda"),Save(kTRUE),PrintLevel(3));
+#endif
+#else
+#ifdef MINOS
+        fitres=final_pdf->fitTo(*data,ExternalConstraints(*externalconstrains),Minos(true),NumCPU(ncpu),Save(kTRUE),PrintLevel(3));
 #else
         fitres=final_pdf->fitTo(*data,ExternalConstraints(*externalconstrains),NumCPU(ncpu),Save(kTRUE),PrintLevel(3));
+#endif
 #endif
     fStopWatch->Stop();
     fFitTime=fStopWatch->RealTime();
@@ -943,11 +967,27 @@ void unbinfit::writeResults()
     std::ofstream ofs(tempstr,std::ios::app);
     for (int i=0;i<fdecaypath->getNMember()*5+8;i++){
         if (!pvar[i]->isConstant())
-            ofs<<i<<"\t"<<pvar[i]->getVal()<<"\t"<<pvar[i]->getError()<<std::endl;
+//            ofs<<i<<"\t"<<pvar[i]->getVal()<<"\t"<<pvar[i]->getError()<<std::endl;
+            ofs<<i<<"\t"<<pvar[i]->getVal()<<"\t"<<pvar[i]->getError()<<"\t"<<pvar[i]->getAsymErrorLo()<<"\t"<<pvar[i]->getAsymErrorHi()<<std::endl;
     }
     ofs<<"nsig = "<<nsig->getVal()<<"\tnbkg = "<<nbkg->getVal()<<std::endl;
     ofs<<"chisquare/NDF = "<<chiSquareNDF<<"\t"<<chiSquareNDF1n<<"\t"<<chiSquareNDF2n<<std::endl;
     ofs<<"FitTime = "<<fFitTime<<endl;
+
+    fitStatus=fitres->status();
+    fitCovQual=fitres->covQual();
+    ofs<<"FitStatus = "<<fitStatus<<endl;
+    ofs<<"FitCovQual = "<<fitCovQual<<endl;
+#ifdef MINOS
+    int minosStatus = -1;
+
+    for (int i=0; i<fitres->numStatusHistory(); ++i) {
+        if (strcmp(fitres->statusLabelHistory(i), "MINOS") == 0)
+            minosStatus = fitres->statusCodeHistory(i);
+    }
+    ofs<<"minosStatus = "<<minosStatus<<endl;
+#endif
+
     fitres->Print();
     std::cout<<"Time for MC generation = "<<fMCGenTime<<std::endl;
     std::cout<<"Time for Fitting = "<<fFitTime<<std::endl;
@@ -979,7 +1019,6 @@ void unbinfit::RunBinFit()
    fB->FixParameter(fdecaypath->getNMember()*5+8,100);
    fB->FixParameter(fdecaypath->getNMember()*5+9,0);
 
-
    fSB=new TF1("fSB",totdecaymodel,&fitF::fcndecay1n,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay1n");
    for (int i=0;i<fdecaypath->getNMember()*5+8;i++){
        fSB->FixParameter(i,pCentralVal[i]);
@@ -1001,6 +1040,7 @@ void unbinfit::RunBinFit()
    cout<<"Eval fB = "<<fB->Eval(p_timerange/2+p_deadtime/2)<<endl;
    cout<<"Eval fSB = "<<fSB->Eval(p_timerange/2+p_deadtime/2)<<endl;
    cout<<"Eval fSB2 = "<<fSB2->Eval(p_timerange/2+p_deadtime/2)<<endl;
+
 
    ROOT::Math::WrappedMultiTF1 wfB(*fB,1);
    ROOT::Math::WrappedMultiTF1 wfSB(*fSB,1);
@@ -1046,7 +1086,11 @@ void unbinfit::RunBinFit()
                fitter.Config().ParSettings(i).SetLimits(pvar[i]->getMin(),pvar[i]->getMax());
        }
    }
+
+
+
    for (int i=fdecaypath->getNMember()*5+8;i<fdecaypath->getNMember()*5+14;i++) fitter.Config().ParSettings(i).Fix();//fix background parameters
+
 
    fitter.Config().SetMinimizer("Minuit2","Migrad");
    //fitter.Config().SetMinosErrors();
@@ -1066,11 +1110,12 @@ void unbinfit::RunBinFit()
    }
 
    fitStatus=fitter.Result().Status();
-   fitCovQual=nfreeparms+1;//fitter.Result().Ndf();
+   fitCovQual=fitter.Result().CovMatrixStatus();
    fitNumInvalidNLL=fitter.Result().NCalls();
    fitEdm=fitter.Result().Edm();
    fitMinNll=fitter.Result().MinFcnValue();   
    //foutputtree->Fill();
+   cout<<"FIT STATUS="<<fitStatus<<endl;
 
    //! construct parent/daugters decay components for plotting demonstration
    fB_parent=new TF1("fB_parent",totdecaymodel,&fitF::fcndecay_parent,p_deadtime,p_timerange,fdecaypath->getNMember()*5+10,"fitF","fcndecay_parent");
@@ -1126,7 +1171,7 @@ void unbinfit::RunBinFit()
            }
        }
        fitStatus=fitter.Result().Status();
-       fitCovQual=nfreeparms+1;//fitter.Result().Ndf();
+       fitCovQual=fitter.Result().CovMatrixStatus();
        fitNumInvalidNLL=fitter.Result().NCalls();
        fitEdm=fitter.Result().Edm();
        fitMinNll=fitter.Result().MinFcnValue();
@@ -1858,7 +1903,7 @@ void unbinfit::Run()
     doFit();
     plotResults();
     writeResults();
-    //writeResultsMC();
+//    writeResultsMC();
 
     for (int i=0;i<fnMC;i++){
         generateMC();
@@ -1867,7 +1912,28 @@ void unbinfit::Run()
         doFit();
         writeResultsMC();
 
+        RooPlot* xframe0 = x->frame(Title("all fit")) ;
+        data->plotOn(xframe0,Binning(nbinsHB/2),RooFit::Name("data0n")) ;
+        binw=(p_timerange-p_deadtime)/nbinsHB*2;
+        final_pdf->plotOn(xframe0,RooFit::Name("data0nmodel")) ;
+        RooPlot* xframe1 = x->frame(Title("1 neutron fit")) ;
+        data->plotOn(xframe1,Cut("y==y::1neu"),Binning(nbinsHSB/2),RooFit::Name("data1n")) ;
+        final_pdf->plotOn(xframe1,Slice(*y,"1neu"),RooFit::Name("data1nmodel")) ;
+        RooPlot* xframe2 = x->frame(Title("2 neutron fit")) ;
+        data->plotOn(xframe2,Cut("y==y::2neu"),Binning(nbinsHSB2/2),RooFit::Name("data2n")) ;
+        final_pdf->plotOn(xframe2,Slice(*y,"2neu"),RooFit::Name("data2nmodel")) ;
+
+        model0nCurve=(RooCurve*)xframe0->getCurve("data0nmodel");
+        model0nHist=(RooHist*)xframe0->getHist("data0n");
+        model1nCurve=(RooCurve*)xframe1->getCurve("data1nmodel");
+        model1nHist=(RooHist*)xframe1->getHist("data1n");
+        model2nCurve=(RooCurve*)xframe2->getCurve("data2nmodel");
+        model2nHist=(RooHist*)xframe2->getHist("data2n");
         calculateChiSquare();
+        cout<<"CALCULATED X2 = "<<chiSquareNDF<<endl;
+        delete xframe0;
+        delete xframe1;
+        delete xframe2;
     }
     writeOutputTree();
     closeOutputFile();

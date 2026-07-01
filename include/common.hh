@@ -30,7 +30,7 @@
 //#define PARENT_NEUEFF_UNIFORM
 
 #define ENTRYLIMIT -1200000 //set negative for not limiting the entries by default
-#define STARTFIT 0.08
+#define STARTFIT 0.0
 
 // set if production rate of isiomeric state equal 1
 #define ISOMER_SUM_UNITY

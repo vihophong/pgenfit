@@ -16,12 +16,16 @@
 
 int main(int argc, char *argv[])
 {
-    if (argc==4) {
+    if (argc==4 || argc==5) {
         simulation* sim=new simulation(argv[1]);
         sim->readSimulationParameters(argv[2]);
         TFile* fout=new TFile(argv[3],"recreate");
         fout->cd();
-        sim->setRandomSeed(0);
+        if (argc==4){
+            sim->setRandomSeed(0);
+        }else{
+            sim->setRandomSeed(atoi(argv[4]));
+        }
         sim->BookSimulationTree();
         sim->BookCorrelationTree();
         sim->runSimulation();

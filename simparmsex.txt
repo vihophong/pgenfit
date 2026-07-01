@@ -7,7 +7,7 @@ itdiffentrybegin 110000
 #If we fix implantation position to a fix mean value, set it to 1
 isfiximppos 0
 #If we choose beta background from histogram (hx.root and hy.root)
-ishistgausbkg 1
+ishistgausbkg 0
 #Beam time (add 1 at the begining to have more)
 beamtime 3600
 #Beam rate rate
@@ -41,11 +41,11 @@ deltaxylimit 3
 #DeltaX (distance from implantation) mean
 dxbetamean 0.
 #DeltaX sigma
-dxbetasigma 1.22
+dxbetasigma 1.
 #DeltaY (distance from implantation) mean
 dybetamean 0.
 #DeltaY sigma
-dybetasigma 1.04
+dybetasigma 1.
 
 #max-min of implantation profile
 xmin 0.
@@ -57,9 +57,9 @@ ximpmean 64.
 #Mean Y of implant profile
 yimpmean 64.
 #Sigma X of implant profile
-ximpsigma 14.
+ximpsigma 10.
 #Sigma Y of implant profile
-yimpsigma 19.
+yimpsigma 10.
 #Mean X of gassian distributed background profile
 xbetabkgmean 64
 #Mean Y of gassian distributed backgroundprofile
