@@ -967,8 +967,11 @@ void unbinfit::writeResults()
     std::ofstream ofs(tempstr,std::ios::app);
     for (int i=0;i<fdecaypath->getNMember()*5+8;i++){
         if (!pvar[i]->isConstant())
-//            ofs<<i<<"\t"<<pvar[i]->getVal()<<"\t"<<pvar[i]->getError()<<std::endl;
+#ifdef MINOS
             ofs<<i<<"\t"<<pvar[i]->getVal()<<"\t"<<pvar[i]->getError()<<"\t"<<pvar[i]->getAsymErrorLo()<<"\t"<<pvar[i]->getAsymErrorHi()<<std::endl;
+#else
+            ofs<<i<<"\t"<<pvar[i]->getVal()<<"\t"<<pvar[i]->getError()<<std::endl;
+#endif
     }
     ofs<<"nsig = "<<nsig->getVal()<<"\tnbkg = "<<nbkg->getVal()<<std::endl;
     ofs<<"chisquare/NDF = "<<chiSquareNDF<<"\t"<<chiSquareNDF1n<<"\t"<<chiSquareNDF2n<<std::endl;
@@ -1204,30 +1207,32 @@ void unbinfit::writeFitComponents()
         fSB2_c134->FixParameter(i,fSB2->GetParameter(i));
     }
 
-    fB->SetNpx(nbinsHB*10);
-    fB_bkgneg->SetNpx(nbinsHB*10);
-    fB_bkgpos->SetNpx(nbinsHB*10);
-    fB_parent->SetNpx(nbinsHB*10);
-    fB_daugter->SetNpx(nbinsHB*10);
-    fSB->SetNpx(nbinsHSB*10);
-    fSB_bkgneg->SetNpx(nbinsHSB*10);
-    fSB_bkgpos->SetNpx(nbinsHSB*10);
-    fSB_parent->SetNpx(nbinsHSB*10);
-    fSB_daugter->SetNpx(nbinsHSB*10);
-    fSB2->SetNpx(nbinsHSB2*10);
-    fSB2_bkgneg->SetNpx(nbinsHSB2*10);
-    fSB2_bkgpos->SetNpx(nbinsHSB2*10);
-    fSB2_parent->SetNpx(nbinsHSB2*10);
-    fSB2_daugter->SetNpx(nbinsHSB2*10);
-    fSB_c1->SetNpx(nbinsHB*10);
-    fSB_c2->SetNpx(nbinsHB*10);
-    fSB_c3->SetNpx(nbinsHB*10);
-    fSB_c23->SetNpx(nbinsHB*10);
-    fSB2_c1->SetNpx(nbinsHSB2*10);
-    fSB2_c2->SetNpx(nbinsHSB2*10);
-    fSB2_c3->SetNpx(nbinsHSB2*10);
-    fSB2_c4->SetNpx(nbinsHSB2*10);
-    fSB2_c134->SetNpx(nbinsHSB2*10);
+    fB->SetNpx(nbinsHB*100);
+    fB_bkgneg->SetNpx(nbinsHB*100);
+    fB_bkgpos->SetNpx(nbinsHB*100);
+//    fB_parent->SetNpx(nbinsHB*10);
+    fB_parent->SetNpx(nbinsHB*100);//increas binning (Jul1,2026)
+//    fB_daugter->SetNpx(nbinsHB*10);
+    fB_daugter->SetNpx(nbinsHB*100);//increas binning (Jul1,2026)
+    fSB->SetNpx(nbinsHSB*100);
+    fSB_bkgneg->SetNpx(nbinsHSB*100);
+    fSB_bkgpos->SetNpx(nbinsHSB*100);
+    fSB_parent->SetNpx(nbinsHSB*100);//increas binning (Jul1,2026)
+    fSB_daugter->SetNpx(nbinsHSB*100);//increas binning (Jul1,2026)
+    fSB2->SetNpx(nbinsHSB2*100);
+    fSB2_bkgneg->SetNpx(nbinsHSB2*100);
+    fSB2_bkgpos->SetNpx(nbinsHSB2*100);
+    fSB2_parent->SetNpx(nbinsHSB2*100);//increas binning (Jul1,2026)
+    fSB2_daugter->SetNpx(nbinsHSB2*100);//increas binning (Jul1,2026)
+    fSB_c1->SetNpx(nbinsHB*100);
+    fSB_c2->SetNpx(nbinsHB*100);
+    fSB_c3->SetNpx(nbinsHB*100);
+    fSB_c23->SetNpx(nbinsHB*100);
+    fSB2_c1->SetNpx(nbinsHSB2*100);
+    fSB2_c2->SetNpx(nbinsHSB2*100);
+    fSB2_c3->SetNpx(nbinsHSB2*100);
+    fSB2_c4->SetNpx(nbinsHSB2*100);
+    fSB2_c134->SetNpx(nbinsHSB2*100);
 
     fB->Write();
     fSB->Write();
