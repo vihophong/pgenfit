@@ -16,7 +16,7 @@
 #include "TSystem.h"
 #include <iostream>
 
-
+//#define MINOS 1
 using namespace RooFit;
 
 
@@ -346,10 +346,10 @@ void unbinfit::initFitParameters()
     std::cout<<"read-in efficiency factors:"<<std::endl;
     std::cout<<be<<"\t"<<err_be<<"\t"<<b1ne<<"\t"<<err_b1ne<<"\t"<<b2ne<<"\t"<<err_b2ne<<"\t"<<n1n2ne<<"\t"<<err_n1n2ne<<"\t"<<err_n1n2ne_hi<<"\t"<<std::endl;
 
-    p[fdecaypath->getNMember()*5+4]=new RooRealVar(Form("p%d",fdecaypath->getNMember()*5+4),Form("p%d",fdecaypath->getNMember()*5+4),be,0,1);
-    p[fdecaypath->getNMember()*5+5]=new RooRealVar(Form("p%d",fdecaypath->getNMember()*5+5),Form("p%d",fdecaypath->getNMember()*5+5),b1ne,0,1);
-    p[fdecaypath->getNMember()*5+6]=new RooRealVar(Form("p%d",fdecaypath->getNMember()*5+6),Form("p%d",fdecaypath->getNMember()*5+6),b2ne,0,1);
-    p[fdecaypath->getNMember()*5+7]=new RooRealVar(Form("p%d",fdecaypath->getNMember()*5+7),Form("p%d",fdecaypath->getNMember()*5+7),n1n2ne,0,1);
+    p[fdecaypath->getNMember()*5+4]=new RooRealVar(Form("p%d",fdecaypath->getNMember()*5+4),Form("p%d",fdecaypath->getNMember()*5+4),be,0,2);
+    p[fdecaypath->getNMember()*5+5]=new RooRealVar(Form("p%d",fdecaypath->getNMember()*5+5),Form("p%d",fdecaypath->getNMember()*5+5),b1ne,0,2);
+    p[fdecaypath->getNMember()*5+6]=new RooRealVar(Form("p%d",fdecaypath->getNMember()*5+6),Form("p%d",fdecaypath->getNMember()*5+6),b2ne,0,2);
+    p[fdecaypath->getNMember()*5+7]=new RooRealVar(Form("p%d",fdecaypath->getNMember()*5+7),Form("p%d",fdecaypath->getNMember()*5+7),n1n2ne,0,2);
     pvar[fdecaypath->getNMember()*5+4]=(RooRealVar*) p[fdecaypath->getNMember()*5+4];
     pvar[fdecaypath->getNMember()*5+5]=(RooRealVar*) p[fdecaypath->getNMember()*5+5];
     pvar[fdecaypath->getNMember()*5+6]=(RooRealVar*) p[fdecaypath->getNMember()*5+6];
